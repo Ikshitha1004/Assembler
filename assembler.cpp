@@ -69,6 +69,12 @@ public:
                     while (pos<line.size() && (isalnum(line[pos])||line[pos]=='x'||line[pos]=='-')) pos++;
                     tokens.push_back({TokenType::IMMEDIATE, line.substr(start,pos-start), line_num});
                 } 
+                else if (isdigit((unsigned char)line[pos])) {
+    size_t start = pos;
+    while (pos < line.size() && (isalnum((unsigned char)line[pos]) || line[pos]=='x' || line[pos]=='X')) pos++;
+    tokens.push_back({TokenType::IMMEDIATE, line.substr(start,pos-start), line_num});
+}
+
                 else { ++pos; } // unknown, skip
             }
             tokens.push_back({TokenType::ENDLINE,"",line_num});
@@ -126,6 +132,7 @@ public:
             } 
             else if(t.type==TokenType::DIRECTIVE) {
                 std::string dir = t.text;
+                pos++;
                 auto ops = parse_operands();
                 ast.push_back({ASTNode::NodeType::DIRECTIVE, dir, ops, t.line});
                 handle_directive(dir, ops);
