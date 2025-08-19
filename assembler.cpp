@@ -102,8 +102,8 @@ private:
 
     bool is_register(const std::string &word) {
         if(word=="sp"||word=="lr"||word=="pc") return true;
-        if(word.size()==2 && word[0]=='r' && isdigit(word[1])) return true;
-        if(word.size()==3 && word[0]=='r' && isdigit(word[1]) && isdigit(word[2])) return true;
+        if(word.size()==2 && word[0]=='R' && isdigit(word[1])) return true;
+        if(word.size()==3 && word[0]=='R' && isdigit(word[1]) && isdigit(word[2])) return true;
         return false;
     }
 
