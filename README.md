@@ -1,42 +1,78 @@
-# ARM_ALL
+# Stack-Based Assembler
 
-# ARM Assembler Core Module
+This project implements the **core tokenizer and parser** for a **stack-based virtual machine (VM) assembler**.  
+The assembler processes **23 stack-based VM instructions**, converting human-readable assembly into a structured intermediate representation.  
 
-This module implements the **core tokenizer, parser, and section handling** for an ARM assembler. It is designed to be the **central file** of the assembler project and will be extended with Pass 1/Pass 2 functionality, symbol tables, and instruction encoding.
+It lays the foundation for future passes such as label resolution and bytecode generation.
 
-## Features
+---
 
-### Tokenizer
-- Recognizes labels, mnemonics, directives, registers, immediates, and comments.
-- Supports standard ARM syntax, including:
-  - Registers: `r0`–`r15`, `sp`, `lr`, `pc`
-  - Directives: `.text`, `.data`, `.bss`, `.word`, `.asciz`, `.skip`, `.align`
-  - Comments: `@`, `;`, `//`
+## ✨ Features
 
-### Parser Skeleton
-- Converts tokens into an **AST** (Abstract Syntax Tree).
-- Handles:
-  - Labels
-  - Directives
-  - Instructions
-- Supports operand parsing for instructions and directives.
+### 1. Tokenizer (Lexer)
+- Recognizes:
+  - **Mnemonics**:  
+    `PUSH, POP, DUP, IADD, ISUB, IMUL, IDIV, INEG, LOAD, STORE, JMP, JZ, JNZ, CALL, RET, ICMP_EQ, ICMP_LT, ICMP_GT, NEW, GETFIELD, PUTFIELD, INVOKEVIRTUAL, INVOKESPECIAL`
+  - **Numbers, identifiers, labels, and comments** (`;` or `//`)
+- Produces a **stream of tokens** with type and value.
+- Modular and reusable for further passes.
 
-### Section Handling & Location Counters
-- Maintains current section (`.text`, `.data`, `.bss`).
-- Tracks location counter (`LC`) per section.
-- Updates LC for instructions and directives like `.word` and `.asciz`.
+### 2. Parser
+- Converts the token stream into **instructions (opcode + operands)**.
+- Validates mnemonics against the **23-instruction ISA**.
+- Supports **operand parsing** for all instructions.
+- Maintains **labels** for jumps and function calls.
+- Error handling (currently commented out for dev testing).
 
-### Instructions Currently Recognized
-- Data processing: `MOV`, `ADD`, `SUB`, `RSB`, `AND`, `ORR`, `EOR`, `MVN`
-- Compare: `CMP`, `CMN`, `TST`, `TEQ`
-- Memory: `LDR`, `STR`, `LDM`, `STM`
-- Branching: `B`, `BL`, `BX`
-- Misc: `SWI`, `NOP`
-- Shift operations: `LSL`, `LSR`, `ASR`, `ROR`
+### 3. Supported Instructions
+- **Arithmetic**: `IADD, ISUB, IMUL, IDIV, INEG`  
+- **Stack**: `PUSH, POP, DUP`  
+- **Memory**: `LOAD, STORE`  
+- **Control Flow**: `JMP, JZ, JNZ, CALL, RET`  
+- **Comparison**: `ICMP_EQ, ICMP_LT, ICMP_GT`  
+- **Object-Oriented**: `NEW, GETFIELD, PUTFIELD, INVOKEVIRTUAL, INVOKESPECIAL`
 
-> **Note:** This module does not encode instructions into binary yet. It is meant to provide a **foundation** for Pass 1 (symbol collection) and Pass 2 (instruction encoding).
+### 4. Demo Program
+```asm
+; Computes (2 + 3) * 4, stores to local[0], compares, and simple branch
 
-## How to Use
-```bash
-g++ -std=c++17 assembler.cpp -o assembler
-./assembler example.asm
+        PUSH 2
+        PUSH 3
+        IADD
+        PUSH 4
+        IMUL
+        STORE 0
+
+        LOAD 0
+        PUSH 20
+        ICMP_LT         ; local[0] < 20 ? 1 : 0
+        JZ  end
+
+        ; object-y ops with dummy constant pool refs
+        NEW  1
+        DUP
+        PUTFIELD 2
+        POP
+
+        JMP done
+
+end:
+        LOAD 0
+        PUSH 20
+        ICMP_GT
+        JNZ alt
+
+        ; call fallthrough
+        CALL func
+        JMP done
+
+alt:
+        CALL func
+
+func:
+        ; trivial function body + return
+        RET
+
+done:
+        ; loop forever (just to demonstrate label resolution)
+        JMP done
