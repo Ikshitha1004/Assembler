@@ -7,7 +7,7 @@ It lays the foundation for future passes such as label resolution and bytecode g
 
 ---
 
-## ✨ Features
+##  Features
 
 ### 1. Tokenizer (Lexer)
 - Recognizes:
