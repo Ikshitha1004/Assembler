@@ -1,78 +1,91 @@
-# Stack-Based Assembler
 
-This project implements the **core tokenizer and parser** for a **stack-based virtual machine (VM) assembler**.  
-The assembler processes **23 stack-based VM instructions**, converting human-readable assembly into a structured intermediate representation.  
-
-It lays the foundation for future passes such as label resolution and bytecode generation.
+# Assembler, Linker, and Loader 
+## CSD LAB — CS401P
+This repository contains **Assembler, Linker, and Loader** in C++ that work together to process a custom VM instruction set architecture (ISA) for CSD Lab.
 
 ---
 
-##  Features
+## Project Overview
 
-### 1. Tokenizer (Lexer)
-- Recognizes:
-  - **Mnemonics**:  
-    `PUSH, POP, DUP, IADD, ISUB, IMUL, IDIV, INEG, LOAD, STORE, JMP, JZ, JNZ, CALL, RET, ICMP_EQ, ICMP_LT, ICMP_GT, NEW, GETFIELD, PUTFIELD, INVOKEVIRTUAL, INVOKESPECIAL`
-  - **Numbers, identifiers, labels, and comments** (`;` or `//`)
-- Produces a **stream of tokens** with type and value.
-- Modular and reusable for further passes.
 
-### 2. Parser
-- Converts the token stream into **instructions (opcode + operands)**.
-- Validates mnemonics against the **23-instruction ISA**.
-- Supports **operand parsing** for all instructions.
-- Maintains **labels** for jumps and function calls.
-- Error handling (currently commented out for dev testing).
+* **Assembler**
+  Converts human-readable assembly source code into a stream of machine-readable instructions.
+* **Linker**
+  Resolves labels, symbols, and combines multiple object files into a single executable image.
+* **Loader**
+  Prepares the executable for execution by resolving addresses, initializing memory, and passing control to the virtual machine.
 
-### 3. Supported Instructions
-- **Arithmetic**: `IADD, ISUB, IMUL, IDIV, INEG`  
-- **Stack**: `PUSH, POP, DUP`  
-- **Memory**: `LOAD, STORE`  
-- **Control Flow**: `JMP, JZ, JNZ, CALL, RET`  
-- **Comparison**: `ICMP_EQ, ICMP_LT, ICMP_GT`  
-- **Object-Oriented**: `NEW, GETFIELD, PUTFIELD, INVOKEVIRTUAL, INVOKESPECIAL`
 
-### 4. Demo Program
-```asm
-; Computes (2 + 3) * 4, stores to local[0], compares, and simple branch
+---
 
-        PUSH 2
-        PUSH 3
-        IADD
-        PUSH 4
-        IMUL
-        STORE 0
+## Key Features
 
-        LOAD 0
-        PUSH 20
-        ICMP_LT         ; local[0] < 20 ? 1 : 0
-        JZ  end
+* **23-Instruction Stack-Based ISA**
+  Supports arithmetic, stack operations, memory access, control flow, comparisons, and basic object-oriented instructions.
+* **Assembler**
 
-        ; object-y ops with dummy constant pool refs
-        NEW  1
-        DUP
-        PUTFIELD 2
-        POP
+  * Tokenizes mnemonics, numbers, identifiers, and labels.
+  * Validates instruction syntax.
+  * Builds an intermediate representation (`Instruction` objects).
+* **Linker**
 
-        JMP done
+  * Resolves labels for jumps and calls.
+  * Handles multiple assembly source files.
+* **Loader**
 
-end:
-        LOAD 0
-        PUSH 20
-        ICMP_GT
-        JNZ alt
+  * Loads the linked program into memory.
+  * Initializes stack, constant pool, and instruction pointer.
+* **Error Handling**
+  Detects invalid mnemonics, missing labels, and malformed operands.
+* **Demo Program**
+  Included sample assembly file (`demo.asm`) demonstrates stack arithmetic, branching, and object operations.
 
-        ; call fallthrough
-        CALL func
-        JMP done
+---
 
-alt:
-        CALL func
 
-func:
-        ; trivial function body + return
-        RET
 
-done:
-        ; loop forever (just to demonstrate label resolution)
-        JMP done
+## Planned Instruction Set (Subset)
+
+* **Arithmetic**: IADD, ISUB, IMUL, IDIV, INEG
+* **Stack**: PUSH, POP, DUP
+* **Memory**: LOAD, STORE
+* **Control Flow**: JMP, JZ, JNZ, CALL, RET
+* **Comparison**: ICMP\_EQ, ICMP\_LT, ICMP\_GT
+* **Object-Oriented**: NEW, GETFIELD, PUTFIELD, INVOKEVIRTUAL, INVOKESPECIAL
+
+---
+
+## Usage
+
+1. **Build**:
+
+   ```bash
+   make clean
+   make
+   ```
+
+   Produces the assembler binary in `bin/assembler`.
+
+2. **Run**:
+
+   ```bash
+   ./bin/assembler demo.asm
+   ```
+
+3. **Output**:
+   Prints tokens and parsed instruction list.
+
+---
+
+## Team Members
+
+| Name       | Roll Number |
+| ---------- | ----------- |
+| Ikshitha | (CS22B027)  |
+| Sahiti | (CS22B056)  |
+| Dakshayini | (CS21B016)  |
+
+
+---
+
+

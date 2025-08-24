@@ -32,9 +32,49 @@ void Parser::parse_operands(Instruction &ins) {
         else break;
     }
 }
-
+/*----------------------------------------------------------------------------------------
+    This module was written by Dakshayani
+-------------------------------------------------------------------------------------------*/
 void Parser::validate_instruction(const Instruction &ins) {
-   //error handlin got be done
+    auto bad = [&](const std::string &msg) {
+        std::ostringstream os;
+        os << "Validation error at " << ins.src_line << ":" << ins.src_col
+           << " -> " << msg;
+        errlist.push_back(os.str());
+    };
+
+    switch (ins.op) {
+        case OpCode::PUSH:
+        case OpCode::LOAD:
+        case OpCode::STORE:
+        case OpCode::JMP:
+        case OpCode::JZ:
+        case OpCode::JNZ:
+        case OpCode::CALL:
+        case OpCode::NEW:
+        case OpCode::GETFIELD:
+        case OpCode::PUTFIELD:
+        case OpCode::INVOKEVIRTUAL:
+        case OpCode::INVOKESPECIAL:
+            if (ins.operands.size() != 1)
+                bad("Instruction requires exactly 1 operand");
+            break;
+
+        case OpCode::POP:
+        case OpCode::DUP:
+        case OpCode::IADD: case OpCode::ISUB:
+        case OpCode::IMUL: case OpCode::IDIV: case OpCode::INEG:
+        case OpCode::ICMP_EQ: case OpCode::ICMP_LT: case OpCode::ICMP_GT:
+        case OpCode::RET:
+            if (!ins.operands.empty())
+                bad("Instruction takes no operands");
+            break;
+
+        default:
+            if (ins.op == OpCode::INVALID)
+                bad("Invalid mnemonic");
+            break;
+    }
 }
 
 void Parser::parse_line() {
