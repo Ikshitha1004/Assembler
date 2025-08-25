@@ -157,8 +157,8 @@ Error [line 6, col 8]: Invalid number 'xyz'
 * Provides **robust error handling** with clear diagnostics.
 * Enables **incremental development** for Module 2 (Linker) and Module 3 (Loader).
 
-##Contributions
+## Contributions
 
 - Ikshitha : Parser
-- sahiti : Tokenizer
+- Sahiti : Tokenizer
 - Dakshayini : Error validation 
