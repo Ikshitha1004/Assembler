@@ -27,6 +27,7 @@ void print_tokens(const std::vector<Token> &toks) {
         std::cout << "Token(";
         switch (t.type) {
             case TokenType::MNEMONIC:    std::cout << "MNEMONIC"; break;
+            case TokenType::DIRECTIVE:   std::cout << "DIRECTIVE"; break;
             case TokenType::NUMBER:      std::cout << "NUMBER"; break;
             case TokenType::IDENT:       std::cout << "IDENT"; break;
             case TokenType::LABEL_DEF:   std::cout << "LABEL_DEF"; break;
@@ -43,8 +44,36 @@ void print_instructions(const std::vector<Instruction> &instrs) {
     for (size_t i = 0; i < instrs.size(); i++) {
         const auto &ins = instrs[i];
         std::cout << i << ": " << opcode_to_string(ins.op);
-        for (auto &op : ins.operands)
-            std::cout << " " << op;
-        std::cout << "   (src line " << ins.src_line << ")\n";
+       for (auto &op : ins.operands) {
+    switch (op.kind) {
+        case Operand::Kind::Register:
+            std::cout << " R" << op.reg;
+            break;
+
+        case Operand::Kind::Immediate:
+            std::cout << " #" << op.imm;
+            break;
+
+        case Operand::Kind::Label:
+            std::cout << " " << op.label;
+            break;
+
+        case Operand::Kind::FieldRef:
+            std::cout << " " << op.fieldref.clazz 
+                      << "/" << op.fieldref.name 
+                      << " : " << op.fieldref.desc;
+            break;
+
+        case Operand::Kind::MethodRef:
+            std::cout << " (methodref TODO)";
+            break;
+
+        case Operand::Kind::ConstPoolIndex:
+            std::cout << " (cp#" << op.imm << ")";
+            break;
+    }
+}
+std::cout << "   (src line " << ins.src_line << ")\n";
+
     }
 }

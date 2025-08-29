@@ -10,13 +10,27 @@
 #include <vector>
 #include <unordered_map>
 #include <string>
+struct MethodInfo {
+    std::string name;
+    std::vector<std::string> modifiers;
+    int maxStack = -1;
+    int maxLocals = -1;
+    std::vector<Instruction> instructions;
+};
 
+struct ClassInfo {
+    std::string name;
+    std::vector<MethodInfo> methods;
+};
 class Parser {
 public:
     explicit Parser(const std::vector<Token> &toks);
     std::vector<Instruction> parse();
     const std::vector<std::string>& errors() const;
     const std::unordered_map<std::string,int>& labels() const;
+    ClassInfo currentClass;
+    MethodInfo* currentMethod = nullptr;
+    std::vector<ClassInfo> classes;
 
 private:
     std::vector<Token> toks;
@@ -33,6 +47,7 @@ private:
     void parse_line();
     void parse_operands(Instruction &ins);
     void validate_instruction(const Instruction &ins);
+    void parse_directive();
 };
 
 #endif // ASSEMBLER_Parser_hpp

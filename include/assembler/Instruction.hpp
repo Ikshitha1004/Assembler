@@ -47,13 +47,22 @@ enum class OpCode : uint8_t {
 
     INVALID = 0xFF
 };
+struct Operand {
+    enum class Kind { Register, Immediate, Label, FieldRef, MethodRef, ConstPoolIndex };
+    Kind kind;
 
+    int reg;
+    int imm;
+    std::string label;
+    struct { std::string clazz, name, desc; } fieldref;
+};
 struct Instruction {
     OpCode op;
-    std::vector<std::string> operands; 
+    std::vector<Operand> operands; 
     int src_line;
     int src_col;
 };
+
 
 std::string opcode_to_string(OpCode oc);
 OpCode mnemonic_to_opcode(const std::string &m);

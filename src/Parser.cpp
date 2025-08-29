@@ -5,6 +5,7 @@
 #include "assembler/Parser.hpp"
 #include "assembler/Utils.hpp"
 #include <sstream>
+#include <iostream>
 
 Parser::Parser(const std::vector<Token> &toks)
     : toks(toks), idx(0) {}
@@ -22,10 +23,21 @@ bool Parser::expect(TokenType t) {
 
 void Parser::parse_operands(Instruction &ins) {
     while (true) {
-        if (cur().type == TokenType::NUMBER || cur().type == TokenType::IDENT) {
-            ins.operands.push_back(cur().value);
+            if (cur().type == TokenType::NUMBER) {
+            Operand op;
+            op.kind = Operand::Kind::Immediate;
+            op.imm = std::stoi(cur().value);
+            ins.operands.push_back(op);
             advance();
-        } else {
+        }
+        else if (cur().type == TokenType::IDENT) {
+            Operand op;
+            op.kind = Operand::Kind::Label;  
+            op.label = cur().value;
+            ins.operands.push_back(op);
+            advance();
+        }
+      else {
             break;
         }
         if (cur().type == TokenType::COMMA) advance();
@@ -82,6 +94,7 @@ void Parser::parse_line() {
         advance();
         return;
     }
+    if (cur().type == TokenType::DIRECTIVE) { parse_directive(); return; }
     if (cur().type == TokenType::LABEL_DEF) {
         std::string lab = cur().value;
         if (label_map.find(lab) != label_map.end()) {
@@ -96,9 +109,46 @@ void Parser::parse_line() {
     }
     if (cur().type == TokenType::MNEMONIC) {
         std::string m = cur().value;
-        OpCode oc = mnemonic_to_opcode(m);
+         OpCode oc = mnemonic_to_opcode(m);
 
         Instruction ins;
+         std::vector<std::string> idents;
+       if (opcode_to_string(oc) == "PUTFIELD" || opcode_to_string(oc) == "GETFIELD") {
+        Operand op;
+        op.kind = Operand::Kind::FieldRef;
+
+        std::vector<std::string> idents;
+        advance(); // consume mnemonic
+        while (cur().type == TokenType::IDENT) {
+            std::cout<<"came here "<<cur().value<<std::endl;
+            idents.push_back(cur().value);
+            advance();
+        }
+
+        if (idents.size() < 2) {
+            errlist.push_back("Malformed field reference, need at least class/field and descriptor");
+        } else {
+            // Everything except last two = class (with slashes if needed)
+            std::string clazz;
+            for (size_t i = 0; i < idents.size(); ++i) {
+                if (!clazz.empty()) clazz += "/";
+                clazz += idents[i];
+            }
+            
+            // field name = second-to-last
+            std::string fieldName = idents[idents.size() - 2];
+
+            // descriptor = last
+            std::string desc = idents.back();
+            op.fieldref.clazz = clazz;
+            op.fieldref.name  = fieldName;
+            op.fieldref.desc  = desc;
+        }
+        
+        ins.operands.push_back(op);
+        return;
+}
+
         ins.op = oc;
         ins.src_line = cur().line;
         ins.src_col = cur().col;
@@ -118,6 +168,71 @@ void Parser::parse_line() {
     }
     advance();
 }
+void Parser::parse_directive() {
+    std::string dir = cur().value; // like ".class" or ".method"
+    int line = cur().line, col = cur().col;
+    advance();
+
+    if (dir == ".class") {
+        if (cur().type != TokenType::IDENT) {
+            errlist.push_back("Expected class name after .class");
+            return;
+        }
+        currentClass = ClassInfo{};
+        currentClass.name = cur().value;
+        classes.push_back(currentClass);
+        advance();
+    }
+    else if (dir == ".method") {
+        currentMethod = new MethodInfo{};
+        // read modifiers + name
+        
+        while (cur().type == TokenType::IDENT) {
+           // std::cout << "came here "<<std::endl;
+            currentMethod->modifiers.push_back(cur().value);
+            advance();
+        }
+        // if (cur().type != TokenType::IDENT) {
+        //    std::cout << "here: " << tokenTypeToString(cur().type) << "\n";
+        //     errlist.push_back("Expected method name after .method");
+        //     return;
+        // }
+        //advance();
+    }
+    else if (dir == ".limit") {
+        if (!currentMethod) {
+            errlist.push_back("'.limit' outside of method at line " + std::to_string(line));
+            return;
+        }
+        if (cur().type != TokenType::IDENT) {
+            errlist.push_back("Expected 'stack' or 'locals' after .limit");
+            return;
+        }
+        std::string kind = cur().value;
+        advance();
+        if (cur().type != TokenType::NUMBER) {
+            errlist.push_back("Expected number after .limit " + kind);
+            return;
+        }
+        int val = std::stoi(cur().value);
+        if (kind == "stack") currentMethod->maxStack = val;
+        else if (kind == "locals") currentMethod->maxLocals = val;
+        else errlist.push_back("Unknown limit kind: " + kind);
+        advance();
+    }
+    else if (dir == ".end") {
+        if (currentMethod) {
+            // push back method into class
+            classes.back().methods.push_back(*currentMethod);
+            delete currentMethod;
+            currentMethod = nullptr;
+        }
+    }
+    else {
+        errlist.push_back("Unknown directive '" + dir + "' at line " +
+                          std::to_string(line));
+    }
+}
 
 std::vector<Instruction> Parser::parse() {
     idx = 0;
@@ -129,14 +244,21 @@ std::vector<Instruction> Parser::parse() {
         parse_line();
     }
 
-    // Resolve labels
-    for (auto &ins : instrs) {
-        for (auto &op : ins.operands) {
-            if (label_map.find(op) != label_map.end()) {
-                op = std::to_string(label_map[op]);
+   for (auto &ins : instrs) {
+    for (auto &op : ins.operands) {
+        if (op.kind == Operand::Kind::Label) {
+            auto it = label_map.find(op.label);
+            if (it != label_map.end()) {
+                // convert to immediate
+                op.kind = Operand::Kind::Immediate;
+                op.imm = it->second;
+            } else {
+                errlist.push_back("Undefined label: " + op.label);
             }
         }
     }
+}
+
 
     return instrs;
 }

@@ -15,17 +15,29 @@ char Tokenizer::peek() const { return eof() ? '\0' : src[pos]; }
 char Tokenizer::get() {
     if (eof()) return '\0';
     char c = src[pos++];
-    if (c == '\n') {
-        ++line;
-        col = 1;
-    } else {
-        ++col;
-    }
+    if (c == '\n') { ++line; col = 1; }
+    else { ++col; }
     return c;
 }
 
 void Tokenizer::skip_space() {
-    while (!eof() && std::isspace((unsigned char)peek())) get();
+    while (!eof()) {
+        char p = peek();
+        if (std::isspace((unsigned char)p)) { get(); continue; }
+        // block comments /* ... */
+        if (p == '/' && pos + 1 < src.size() && src[pos + 1] == '*') {
+            get(); get(); // consume "/*"
+            while (!eof()) {
+                if (peek() == '*' && pos + 1 < src.size() && src[pos + 1] == '/') {
+                    get(); get(); // consume "*/"
+                    break;
+                }
+                get();
+            }
+            continue;
+        }
+        break;
+    }
 }
 
 Token Tokenizer::make(TokenType t, const std::string &v, int l, int c) const {
@@ -51,28 +63,29 @@ std::vector<Token> Tokenizer::tokenize() {
         int start_line = line, start_col = col;
         char c = peek();
 
-        // Comment: ';' or '//'
-        if (c == ';') {
-            std::string val;
-            while (!eof() && get() != '\n')
-                val.push_back(src[pos - 1]);
-            toks.push_back(make(TokenType::COMMENT, val, start_line, start_col));
-            continue;
-        }
-        if (c == '/' && pos + 1 < src.size() && src[pos + 1] == '/') {
-            get(); get(); // consume both slashes
+        // line comments ';' or '//'
+        if (c == ';' || (c == '/' && pos + 1 < src.size() && src[pos + 1] == '/')) {
+            if (c == '/') { get(); get(); } // consume //
+            else { get(); }                  // consume ;
             std::string val;
             while (!eof() && peek() != '\n') val.push_back(get());
             toks.push_back(make(TokenType::COMMENT, val, start_line, start_col));
             continue;
         }
 
-        // Identifiers, mnemonics, labels
+        // identifiers / directives / labels / mnemonics
         if (std::isalpha((unsigned char)c) || c == '_' || c == '.') {
             std::string ident;
             while (!eof() && (std::isalnum((unsigned char)peek()) || peek() == '_' || peek() == '.'))
                 ident.push_back(get());
 
+            // Directives start with '.'
+            if (!ident.empty() && ident[0] == '.') {
+                toks.push_back(make(TokenType::DIRECTIVE, ident, start_line, start_col));
+                continue;
+            }
+
+            // label definitions: <ident> :
             skip_space();
             if (!eof() && peek() == ':') {
                 get(); // consume ':'
@@ -80,6 +93,7 @@ std::vector<Token> Tokenizer::tokenize() {
                 continue;
             }
 
+            // mnemonics vs plain identifiers
             std::string up = to_uppercopy(ident);
             if (MNEMONICS.count(up)) {
                 toks.push_back(make(TokenType::MNEMONIC, up, start_line, start_col));
@@ -89,8 +103,9 @@ std::vector<Token> Tokenizer::tokenize() {
             continue;
         }
 
-        // Numbers (support negative)
-        if (std::isdigit((unsigned char)c) || (c == '-' && pos + 1 < src.size() && std::isdigit((unsigned char)src[pos + 1]))) {
+        // numbers (allow leading minus)
+        if (std::isdigit((unsigned char)c) ||
+            (c == '-' && pos + 1 < src.size() && std::isdigit((unsigned char)src[pos + 1]))) {
             std::string num;
             if (peek() == '-') num.push_back(get());
             while (!eof() && std::isdigit((unsigned char)peek())) num.push_back(get());
@@ -98,14 +113,14 @@ std::vector<Token> Tokenizer::tokenize() {
             continue;
         }
 
-        // Comma
+        // comma
         if (c == ',') {
             get();
             toks.push_back(make(TokenType::COMMA, ",", start_line, start_col));
             continue;
         }
 
-        // Unknown: skip but consume
+        // unknown: consume to avoid infinite loop
         get();
     }
 
