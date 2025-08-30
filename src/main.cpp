@@ -2,6 +2,7 @@
 #include "assembler/Tokenizer.hpp"
 #include "assembler/Parser.hpp"
 #include "assembler/Utils.hpp"
+#include "assembler/SymbolTable.hpp"
 
 int main(int argc, char** argv) {
     if (argc < 2) {
@@ -30,10 +31,38 @@ int main(int argc, char** argv) {
     std::cout << "\n=== INSTRUCTIONS ===\n";
     print_instructions(instructions);
 
-    // Show labels
-    std::cout << "\n=== LABELS ===\n";
-    for (auto &kv : parser.labels()) {
-        std::cout << kv.first << " -> " << kv.second << "\n";
+    // Show symbol table contents (labels, constants, etc.)
+    std::cout << "\n=== SYMBOL TABLE ===\n";
+    const SymbolTable& symtab = parser.symbols();
+
+    // Labels
+    for (auto &kv : symtab.labels()) {
+        std::cout << "Label " << kv.first
+                  << " -> addr=" << kv.second.address
+                  << " (defined at line " << kv.second.line
+                  << ", col " << kv.second.col << ")\n";
+    }
+
+    // Constants
+    for (auto &kv : symtab.constants()) {
+        std::cout << "Const " << kv.first
+                  << " = " << kv.second.value << "\n";
+    }
+
+    // Methods
+    for (auto &kv : symtab.methods()) {
+        std::cout << "Method " << kv.first
+                  << " addr=" << kv.second.address
+                  << " stack=" << kv.second.stack_limit
+                  << " locals=" << kv.second.locals_limit
+                  << (kv.second.is_entry ? " [ENTRY]" : "")
+                  << "\n";
+    }
+
+    // Classes
+    for (auto &kv : symtab.classes()) {
+        std::cout << "Class " << kv.first
+                  << " super=" << kv.second.super_name << "\n";
     }
 
     // Report errors if any
