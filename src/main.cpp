@@ -3,6 +3,7 @@
 #include "assembler/Parser.hpp"
 #include "assembler/Utils.hpp"
 #include "assembler/SymbolTable.hpp"
+#include "assembler/IR.hpp"      // NEW include
 
 int main(int argc, char** argv) {
     if (argc < 2) {
@@ -71,6 +72,24 @@ int main(int argc, char** argv) {
         for (auto &err : parser.errors())
             std::cerr << err << "\n";
         return 3;
+    }
+    // (Future) Resolver stage goes here
+    // auto resolved = Resolver::resolve(instructions, parser.symbol_table());
+
+    // For now we directly hand parsed instructions to IRBuilder
+    auto irrep = assembler::IRBuilder::build(instructions);
+
+    if (!irrep.errors.empty()) {
+        std::cerr << "\n=== IR BUILD ERRORS ===\n";
+        for (auto &e : irrep.errors) std::cerr << e << "\n";
+    }
+
+    std::cout << "\n=== IR WORDS ===\n";
+    for (size_t i = 0; i < irrep.words.size(); ++i) {
+        const auto &w = irrep.words[i];
+        std::cout << i << ": opcode=0x" << std::hex << (int)w.opcode << std::dec;
+        for (auto v : w.imm) std::cout << " " << v;
+        std::cout << "   (src line " << w.src_line << ")\n";
     }
 
     return 0;
