@@ -1,6 +1,6 @@
 
 /*----------------------------------------------------------------------------------------
-    This module was written by Ikshitha (CS22B027)
+    This module was written by Ikshitha (CS22B027) 
 -------------------------------------------------------------------------------------------*/
 #include "assembler/Parser.hpp"
 #include "assembler/Utils.hpp"
@@ -32,8 +32,18 @@ void Parser::parse_operands(Instruction &ins) {
         }
         else if (cur().type == TokenType::IDENT) {
             Operand op;
-            op.kind = Operand::Kind::Label;  
+           if (ins.op == OpCode::NEW || 
+            ins.op== OpCode::GETFIELD || 
+            ins.op == OpCode::PUTFIELD || 
+            ins.op == OpCode::INVOKEVIRTUAL) {
+            
+            op.kind = Operand::Kind::ConstPoolIndex;
+            op.label = cur().value;  
+        } 
+        else {
+            op.kind = Operand::Kind::Label;  // normal label case (for jumps, etc.)
             op.label = cur().value;
+        }
             ins.operands.push_back(op);
             advance();
         }
@@ -243,10 +253,13 @@ std::vector<Instruction> Parser::parse() {
     while (cur().type != TokenType::END_OF_FILE) {
         parse_line();
     }
-
+/*----------------------------------------------------------------------------------------
+    This module was written by Ikshitha (CS22B027) 
+-------------------------------------------------------------------------------------------*/
    for (auto &ins : instrs) {
     for (auto &op : ins.operands) {
-        if (op.kind == Operand::Kind::Label) {
+        
+        if (op.kind == Operand::Kind::Label && opcode_to_string(ins.op)!="GETFIELD" && opcode_to_string(ins.op)!="PUTFIELD") {
             auto it = label_map.find(op.label);
             if (it != label_map.end()) {
                 // convert to immediate

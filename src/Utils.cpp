@@ -69,7 +69,7 @@ void print_instructions(const std::vector<Instruction> &instrs) {
             break;
 
         case Operand::Kind::ConstPoolIndex:
-            std::cout << " (cp#" << op.imm << ")";
+            //std::cout << " (cp#" << op.imm << ")";
             break;
     }
 }
