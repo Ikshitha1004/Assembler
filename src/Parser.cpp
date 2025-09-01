@@ -6,6 +6,7 @@
 #include "assembler/Utils.hpp"          // to_uppercopy
 #include <cctype>
 #include <sstream>
+#include <limits>
 #include <utility> // for std::move
 
 static uint32_t instr_size_bytes(const Instruction& ins) {
@@ -59,14 +60,26 @@ bool Parser::expect(TokenType t) {
 }
 
 void Parser::parse_operands(Instruction &ins) {
-    while (cur().type == TokenType::NUMBER || cur().type == TokenType::IDENT) {
-        ins.operands.push_back(cur().value);
-        advance();
-        if (cur().type == TokenType::COMMA) {
+    while (true) {
+            if (cur().type == TokenType::NUMBER) {
+            Operand op;
+            op.kind = Operand::Kind::Immediate;
+            op.imm = std::stoi(cur().value);
+            ins.operands.push_back(op);
             advance();
-        } else {
+        }
+        else if (cur().type == TokenType::IDENT) {
+            Operand op;
+            op.kind = Operand::Kind::Label;  
+            op.label = cur().value;
+            ins.operands.push_back(op);
+            advance();
+        }
+      else {
             break;
         }
+        if (cur().type == TokenType::COMMA) advance();
+        else break;
     }
 }
 
@@ -126,13 +139,147 @@ void Parser::validate_instruction(const Instruction &ins) {
     }
 }
 
+void Parser::parse_directive() {
+    std::string dir = cur().value; 
+    int line = cur().line, col = cur().col;
+    advance();
+
+    if (dir == ".class") {
+        if (cur().type != TokenType::IDENT) {
+            errlist.push_back("Expected class name after .class");
+            return;
+        }
+        std::string className = cur().value;
+        if (!symtab.begin_class(className)) {
+            errlist.push_back("Duplicate or invalid class: " + className);
+        }
+        advance();
+    }
+    else if (dir == ".super") {
+        if (cur().type != TokenType::IDENT) {
+            errlist.push_back("Expected superclass name after .super");
+            return;
+        }
+        std::string superName = cur().value;
+        if (!symtab.set_super(superName)) {
+            errlist.push_back("Failed to set superclass: " + superName);
+        }
+        advance();
+    }
+    else if (dir == ".field") {
+        if (cur().type != TokenType::IDENT) {
+            errlist.push_back("Expected field name after .field");
+            return;
+        }
+        std::string fieldName = cur().value;
+        advance();
+        if (cur().type != TokenType::IDENT) {
+            errlist.push_back("Expected field descriptor after field name");
+            return;
+        }
+        std::string descriptor = cur().value;
+        // pool_index unknown here, set to max()
+        if (!symtab.add_field(symtab.current_class(), fieldName, descriptor,
+                              std::numeric_limits<uint32_t>::max())) {
+            errlist.push_back("Duplicate field: " + fieldName);
+        }
+        advance();
+    }
+    else if (dir == ".method") {
+        if (cur().type != TokenType::IDENT) {
+            errlist.push_back("Expected method name after .method");
+            return;
+        }
+        std::string methodName = cur().value;
+        //advance();
+        if (cur().type != TokenType::IDENT) {
+            errlist.push_back("Expected method signature after method name");
+            return;
+        }
+        std::string signature = cur().value;
+        if (!symtab.begin_method(methodName, signature)) {
+            errlist.push_back("Duplicate method: " + methodName + signature);
+        }
+        advance();
+    }
+    else if (dir == ".limit") {
+        if (cur().type != TokenType::IDENT) {
+            errlist.push_back("Expected 'stack' or 'locals' after .limit");
+            return;
+        }
+        std::string kind = cur().value;
+        advance();
+        if (cur().type != TokenType::NUMBER) {
+            errlist.push_back("Expected number after .limit " + kind);
+            return;
+        }
+        uint32_t val = std::stoi(cur().value);
+        if (kind == "stack") {
+            if (!symtab.set_method_stack_limit(val))
+                errlist.push_back("Invalid .limit stack placement");
+        } else if (kind == "locals") {
+            if (!symtab.set_method_locals_limit(val))
+                errlist.push_back("Invalid .limit locals placement");
+        } else {
+            errlist.push_back("Unknown limit kind: " + kind);
+        }
+        advance();
+    }
+    else if (dir == ".entry") {
+        if (!symtab.set_method_entry(true)) {
+            errlist.push_back("'.entry' outside of method at line " + std::to_string(line));
+        }
+    }
+    else if (dir == ".end") {
+        // end method or class depending on context
+        if (!symtab.end_method()) {
+            if (!symtab.end_class()) {
+                errlist.push_back("'.end' without active method or class");
+            }
+        }
+    }
+    else if (dir == ".const") {
+        if (cur().type != TokenType::IDENT) {
+            errlist.push_back("Expected constant name after .const");
+            return;
+        }
+        std::string constName = cur().value;
+        advance();
+        if (cur().type != TokenType::NUMBER) {
+            errlist.push_back("Expected value after constant name");
+            return;
+        }
+        int val = std::stoi(cur().value);
+        if (!symtab.define_constant(constName, val)) {
+            errlist.push_back("Duplicate constant: " + constName);
+        }
+        advance();
+    }
+    else {
+        errlist.push_back("Unknown directive '" + dir + "' at line " +
+                          std::to_string(line));
+    }
+}
+
+
+
 /*----------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------*/
+
+
 void Parser::parse_line() {
-    if (cur().type == TokenType::COMMENT) { advance(); return; }
+    if (cur().type == TokenType::COMMENT) {
+        advance();
+        return;
+    }
+
+    if (cur().type == TokenType::DIRECTIVE) {
+        parse_directive();
+        return;
+    }
 
     if (cur().type == TokenType::LABEL_DEF) {
-        const std::string lab = cur().value;
+        std::string lab = cur().value;
         int l = cur().line, c = cur().col;
         if (!symtab.define_label(lab, l, c)) {
             std::ostringstream os;
@@ -140,50 +287,83 @@ void Parser::parse_line() {
             errlist.push_back(os.str());
         }
         advance();
-        
+        return;
     }
 
-    // If end or comment, done
-    if (cur().type == TokenType::END_OF_FILE || cur().type == TokenType::COMMENT) return;
-
-    // Instruction?
     if (cur().type == TokenType::MNEMONIC) {
         std::string m = to_uppercopy(cur().value);
+        OpCode oc = mnemonic_to_opcode(m);
+
         Instruction ins;
-        ins.op = mnemonic_to_opcode(m);
+        ins.op = oc;
         ins.src_line = cur().line;
         ins.src_col  = cur().col;
 
-        advance();               
-        parse_operands(ins);    
+        advance(); // consume mnemonic
 
-        validate_instruction(ins);
+        // --- Special handling for GETFIELD / PUTFIELD ---
+        if (oc == OpCode::GETFIELD || oc == OpCode::PUTFIELD) {
+            Operand op;
+            op.kind = Operand::Kind::FieldRef;
 
-        if (ins.operands.size() == 1) {
-            switch (ins.op) {
-                case OpCode::JMP:
-                case OpCode::JZ:
-                case OpCode::JNZ:
-                case OpCode::CALL: {
-                    const std::string &opnd = ins.operands[0];
-                    if (!is_number_literal(opnd)) {
-                        // record reference to be resolved after pass 1
-                        symtab.add_label_reference(
-                            instrs.size(),  // this instruction index
-                            0,              // operand index
-                            opnd,
-                            ins.src_line,
-                            ins.src_col
-                        );
-                    }
-                    break;
+            std::vector<std::string> idents;
+            while (cur().type == TokenType::IDENT) {
+                idents.push_back(cur().value);
+                advance();
+            }
+
+            if (idents.size() < 2) {
+                errlist.push_back("Malformed field reference, need class + field + descriptor");
+            } else {
+                // Build class name = all but last 2
+                std::string clazz;
+                for (size_t i = 0; i < idents.size() - 2; ++i) {
+                    if (!clazz.empty()) clazz += "/";
+                    clazz += idents[i];
                 }
-                default:
-                    break;
+                std::string fieldName = idents[idents.size() - 2];
+                std::string desc      = idents.back();
+
+                op.fieldref.clazz = clazz;
+                op.fieldref.name  = fieldName;
+                op.fieldref.desc  = desc;
+
+                // Push into symbol table too
+                symtab.add_field(clazz, fieldName, desc,
+                                 std::numeric_limits<uint32_t>::max());
+            }
+            ins.operands.push_back(op);
+        }
+        else {
+            // --- Default operand parsing ---
+            parse_operands(ins);
+
+            // For jumps/calls: record label reference if operand is not numeric
+            if (ins.operands.size() == 1) {
+                switch (oc) {
+                    case OpCode::JMP:
+                    case OpCode::JZ:
+                    case OpCode::JNZ:
+                    case OpCode::CALL: {
+                        const Operand& op = ins.operands[0];
+                        if (op.kind == Operand::Kind::Label &&
+                            !is_number_literal(op.label)) {
+                            symtab.add_label_reference(
+                                instrs.size(), 0, op.label,
+                                ins.src_line, ins.src_col
+                            );
+                        }
+                        break;
+                    }
+                    default:
+                        break;
+                }
             }
         }
 
-        // Append instruction then advance LC in bytes
+        validate_instruction(ins);
+
+        // Append instruction and advance LC
         instrs.push_back(std::move(ins));
         const Instruction& just = instrs.back();
         symtab.advance_lc(instr_size_bytes(just));
@@ -191,7 +371,6 @@ void Parser::parse_line() {
         return;
     }
 
-    // Any stray identifiers / numbers here are unexpected at line start
     if (cur().type == TokenType::IDENT || cur().type == TokenType::NUMBER) {
         std::ostringstream os;
         os << "Unexpected token '" << cur().value << "' at "
@@ -203,6 +382,7 @@ void Parser::parse_line() {
 
     advance();
 }
+
 
 /*----------------------------------------------------------------------------------------
     Main parse (single pass + resolve forward label refs)
@@ -252,7 +432,7 @@ std::vector<Instruction> Parser::parse() {
             errlist.push_back(os.str());
             continue;
         }
-        target_ins.operands[r.operand_index] = std::to_string(addr);
+        target_ins.operands[r.operand_index].label = std::to_string(addr);
     }
 
     return instrs;

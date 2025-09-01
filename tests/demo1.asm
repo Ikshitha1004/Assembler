@@ -1,37 +1,34 @@
-; Demo: computes (2 + 3) * 4, stores to local[0], compares, and branches
-PUSH 2
-PUSH 3
-IADD
-PUSH 4
-IMUL
-STORE 0
+.class Factorial
+.method main
+    .limit stack 6
+    .limit locals 3   ; locals[0]=n, locals[1]=result, locals[2]=counter
 
-LOAD 0
-PUSH 20
-ICMP_LT
-JZ end
+    ; result = 1
+    LOAD 1
+    STORE 1
 
-NEW 1
-DUP
-PUTFIELD 2
-POP
+    ; counter = n
+    LOAD 0
+    STORE 2
 
-JMP done
+Lloop:
+    LOAD 2            ; counter
+    JZ Lend           ; if counter == 0 → end
 
-end:
-LOAD 0
-PUSH 20
-ICMP_GT
-JNZ alt
+    ; result = result * counter
+    LOAD 1
+    LOAD 2
+    IMUL
+    STORE 1
 
-CALL func
-JMP done
+    ; counter = counter - 1
+    LOAD 2
+    LOAD 3            ; push 1
+    ISUB
+    STORE 2
 
-alt:
-CALL func
+    JMP Lloop
 
-func:
-RET
-
-done:
-JMP done
+Lend:
+    RET
+.end

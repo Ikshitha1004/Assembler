@@ -3,7 +3,7 @@
 #include "assembler/Parser.hpp"
 #include "assembler/Utils.hpp"
 #include "assembler/SymbolTable.hpp"
-#include "assembler/IR.hpp"      // NEW include
+#include "assembler/IR.hpp"    
 
 int main(int argc, char** argv) {
     if (argc < 2) {

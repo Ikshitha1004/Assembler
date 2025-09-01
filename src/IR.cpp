@@ -29,7 +29,7 @@ IRBuilder::Report IRBuilder::build(const std::vector<Instruction>& program) {
         w.src_col  = ins.src_col;
 
         for (size_t oi = 0; oi < ins.operands.size(); ++oi) {
-            const std::string &opstr = ins.operands[oi];
+            const std::string &opstr = ins.operands[oi].label;
             int32_t val = 0;
             if (!parse_int32(opstr, val)) {
                 std::ostringstream os;
