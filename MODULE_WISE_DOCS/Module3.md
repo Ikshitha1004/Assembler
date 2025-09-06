@@ -1,18 +1,18 @@
 
+
 ---
 
-`markdown
 #  Assembler & Linker – File Formats and Libraries
 
 This project implements a **stack-based VM assembler** with support for labels, constants, symbol table, IR generation, and a basic linking model.  
 
 ---
 
-## 1. Assembler Input Format
+##  1. Assembler Input Format
 
 The assembler accepts `.asm` source files with support for **macros**:
 
-asm
+```asm
 ; Example program: main.asm
 
 .class Main
@@ -31,28 +31,17 @@ asm
     STORE 0
     RET
 .end
-`
-
-### Supported Directives
-
-* `.class <name>` → declare class
-* `.super <name>` → superclass
-* `.const NAME VALUE` → constant definition
-* `.limit stack <n>` / `.limit locals <n>` → per-method resource limits
-* `.entry <method>` → program entry point
-* `.method … .end` → method definition
-* `.data <type>` (future) → declare global data
-* `.endian little|big` → file endianness
+````
 
 ---
 
-##  2. Assembler Output Format (`.o`)
+## 🔹 2. Assembler Output Format (`.o`)
 
 The assembler produces a **relocatable object file** (`.o`), similar to C/C++ object files.
 
 ### File Layout
 
-
+```text
 +----------------+
 | HEADER         |
 +----------------+
@@ -64,31 +53,17 @@ The assembler produces a **relocatable object file** (`.o`), similar to C/C++ ob
 +----------------+
 | SYMBOL TABLE   |
 +----------------+
-
-
-### Example Header (C-struct)
-
-c
-struct ObjHeader {
-    char magic[4];     // "VMO\0"
-    uint16_t version;  // =1
-    uint16_t endian;   // 0=little, 1=big
-};
-
-
-* **.text** → machine code / bytecode
-* **.data** → constants & initialized memory
-* **.symtab** → labels, methods, constants
+```
 
 ---
 
-##  3. Static Library Format (`.vmlib`)
+## 🔹 3. Static Library Format (`.vmlib`)
 
 Static libraries are packaged archives of `.o` files, similar to **C++ `.a` archives** or **Java `.jar`** files.
 
 ### Layout
 
-
+```text
 +-----------------+
 | LIB HEADER      |
 +-----------------+
@@ -96,73 +71,37 @@ Static libraries are packaged archives of `.o` files, similar to **C++ `.a` arch
 +-----------------+
 | OBJECT DATA     |
 +-----------------+
-
+```
 
 ### Example Header
 
-c
+```c
 struct VMLibHeader {
     char magic[6];     // "VMLIB\0"
     uint32_t version;  // =1
     uint32_t count;    // number of objects
 };
-
+```
 
 ### Example Index Entry
 
-c
+```c
 struct VMLibEntry {
     char name[64];     // "add.o"
     uint32_t offset;   // offset of object file
     uint32_t size;     // size of object file
 };
-
-
----
-
-##  4.Reading done:
-
-
+```
 
 ---
 
-##  5. Example Library (`libmath.vmlib`)
+## 🔹 4. Example Library (`libmath.vmlib`)
 
 We define a math library with **two methods: `add` and `mul`**.
 
-### `add.asm`
+### File Layout of `libmath.vmlib`
 
-asm
-.method public static add
-    .limit stack 2
-    .limit locals 2
-    LOAD 0
-    LOAD 1
-    IADD
-    RET
-.end
-
-
-### `mul.asm`
-
-asm
-.method public static mul
-    .limit stack 2
-    .limit locals 2
-    LOAD 0
-    LOAD 1
-    IMUL
-    RET
-.end
-
-
-Both are compiled into `add.o` and `mul.o`.
-
----
-
-### `libmath.vmlib` Layout
-
-
+```text
 Header:
   magic   = "VMLIB"
   version = 1
@@ -175,6 +114,9 @@ Index:
 Object Data:
   (binary contents of add.o)
   (binary contents of mul.o)
-
+```
 
 ---
+
+
+
