@@ -85,7 +85,86 @@ This repository contains **Assembler, Linker, and Loader** in C++ that work toge
 | Sahiti | (CS22B056)  |
 | Dakshayini | (CS21B016)  |
 
+---
+## Module 3 – Contributions
+
+
+### Sahiti – Assembler File Formats
+
+#### 1st September
+
+* Drafted *input file format* for .asm supporting .text, .data, .bss, .const.
+* Defined macros: .word, .byte, .string, .space, .align, .global.
+
+#### 2nd September
+
+* Designed *output object file (.obj) format* (header, section table, symbol table).
+* Documented endianess flags, section flags, and symbol resolution.
+
+#### 3rd September
+
+* Updated spec for label resolution in data section.
+
+#### 4th September
+
+* Integrated *error reporting* for malformed macros (e.g., .word text).
+* Tested assembler formats with demo1.asm.
+
+#### 5th September
+
+* Prepared documentation of *assembler I/O formats* and parser flow.
+
 
 ---
+
+### Ikshita – Static & Shared Library Formats
+
+#### 1st September
+
+* Surveyed *static library formats* (.a, .lib) and dynamic ones (.so, .dll).
+* Proposed using .lib for our VM toolchain.
+
+#### 2nd September
+
+* Designed *.lib format* (archive of .obj files with headers and offsets).
+* Documented format fields: magic, count, per-object entries.
+
+#### 3rd September
+
+* Drafted *.sobj shared object format* (dynamic symbol table + relocations).
+
+#### 4th September
+
+* Wrote test libmath.lib with add.obj and mul.obj.
+
+#### 5th September
+
+* Read *static vs dynamic linking behavior* (when symbols resolved).
+
+
+---
+
+### Dakshayini – Linking Pipeline & Shared Library Example
+
+#### 1st September
+* Studied *linking pipeline*: assembler → linker → loader.
+
+#### 2nd September
+* Understood flow: Assembler → Linker → Loader → VM runtime.
+* Studied how relocations will be applied during linking.
+
+#### 3rd September
+* Read about *static vs shared libraries* and their role in linking.
+* Explored how symbol resolution differs between static and dynamic linking.
+
+#### 4th September
+* Built *example shared library* math.sobj exporting add2 function.
+
+#### 5th September
+* Wrote *Module 3.md* documentation.
+
+---
+
+ Module 3 submission : [MODULE_WISE_DOCS/Module3.md](MODULE_WISE_DOCS/Module3.md).
 
 
