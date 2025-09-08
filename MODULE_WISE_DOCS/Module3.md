@@ -15,20 +15,38 @@ The assembler accepts `.asm` source files with support for **macros**:
 ```asm
 ; Example program: main.asm
 
-.class Main
-.super java/lang/Object
+.class Factorial
+.method main
+    .limit stack 6
+    .limit locals 3   ; locals[0]=n, locals[1]=result, locals[2]=counter
 
-.const TEN 10          ; constant macro
-.entry main            ; mark entry point
+    ; result = 1
+    LOAD 1
+    STORE 1
 
-.method public static main
-    .limit stack 4
-    .limit locals 2
+    ; counter = n
+    LOAD 0
+    STORE 2
 
-    PUSH TEN           ; load constant
-    PUSH 20
-    IADD
-    STORE 0
+Lloop:
+    LOAD 2            ; counter
+    JZ Lend           ; if counter == 0 → end
+
+    ; result = result * counter
+    LOAD 1
+    LOAD 2
+    IMUL
+    STORE 1
+
+    ; counter = counter - 1
+    LOAD 2
+    LOAD 3            ; push 1
+    ISUB
+    STORE 2
+
+    JMP Lloop
+
+Lend:
     RET
 .end
 ````
@@ -40,19 +58,23 @@ The assembler accepts `.asm` source files with support for **macros**:
 The assembler produces a **relocatable object file** (`.o`), similar to C/C++ object files.
 
 ### File Layout
-
-```text
+```
 +----------------+
 | HEADER         |
 +----------------+
 | SECTION TABLE  |
 +----------------+
-| .text          |
+| .code          |  (bytecode instructions)
 +----------------+
-| .data          |
+| .constpool     |  (constants, strings, method refs)
 +----------------+
-| SYMBOL TABLE   |
+| .locals        |  (metadata: #locals, #stack slots)
 +----------------+
+| SYMBOL TABLE   |  (methods, fields)
++----------------+
+| RELOCATION     |  (unresolved constpool refs)
++----------------+
+
 ```
 
 ---
@@ -96,27 +118,29 @@ struct VMLibEntry {
 ---
 
 ## 🔹 4. Example Library (`libmath.vmlib`)
-
-We define a math library with **two methods: `add` and `mul`**.
-
-### File Layout of `libmath.vmlib`
-
-```text
-Header:
-  magic   = "VMLIB"
-  version = 1
-  count   = 2
-
-Index:
-  [0] name="add.o" offset=128 size=96
-  [1] name="mul.o" offset=224 size=104
-
-Object Data:
-  (binary contents of add.o)
-  (binary contents of mul.o)
 ```
+Header:
+  magic   = "VMOBJ"
+  version = 1
 
----
+Section Table:
+  .code       offset=128 size=64
+  .constpool  offset=192 size=32
+  .locals     offset=224 size=12
+  .symtab     offset=236 size=48
 
+.code:
+  Bytecode for factorial (LOAD, STORE, JZ, IMUL, ...)
 
+.constpool:
+  [0] int 1
+  [1] field "n"
+  [2] methodref "IMUL"
+  [3] labelref "Lend"
 
+.locals:
+  count=3 → [0]=n, [1]=result, [2]=counter
+
+.symbol table:
+  main() → entry point, references .code
+```
