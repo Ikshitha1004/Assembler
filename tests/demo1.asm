@@ -1,10 +1,10 @@
 .class Factorial
-.method main
+.method main ()V
     .limit stack 6
-    .limit locals 3   ; locals[0]=n, locals[1]=result, locals[2]=counter
+    .limit locals 3   ; 0=n, 1=result, 2=counter
 
     ; result = 1
-    LOAD 1
+    PUSH 1
     STORE 1
 
     ; counter = n
@@ -12,8 +12,9 @@
     STORE 2
 
 Lloop:
-    LOAD 2            ; counter
-    JZ Lend           ; if counter == 0 → end
+    ; if counter == 0 → jump to Lend
+    LOAD 2
+    JZ Lend
 
     ; result = result * counter
     LOAD 1
@@ -23,7 +24,7 @@ Lloop:
 
     ; counter = counter - 1
     LOAD 2
-    LOAD 3            ; push 1
+    PUSH 1
     ISUB
     STORE 2
 

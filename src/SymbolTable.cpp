@@ -126,7 +126,7 @@ std::pair<bool, ClassInfo> SymbolTable::get_class(const std::string& class_name)
 bool SymbolTable::begin_method(const std::string& method_name,
                                const std::string& signature) {
     std::string key = make_method_key(current_class_, method_name, signature);
-    std::cout<<"KEY"<<key<<std::endl;
+    // std::cout<<"KEY"<<key<<std::endl;
     if (methods_.find(key) != methods_.end()) {
         return false; // duplicate method key
     }
@@ -152,9 +152,8 @@ bool SymbolTable::begin_method(const std::string& method_name,
 }
 
 bool SymbolTable::set_method_stack_limit(uint32_t limit) {
-    std::cout<<"curr key"<<current_method_key_<<std::endl;
+    // std::cout<<"curr key"<<current_method_key_<<std::endl;
     if (current_method_key_.empty()) return false;
-    std::cout<<"hiii"<<std::endl;
     auto it = methods_.find(current_method_key_);
     if (it == methods_.end()) return false;
     it->second.stack_limit = limit;
