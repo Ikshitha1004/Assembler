@@ -1,5 +1,5 @@
 .class Factorial
-.method main ()V
+.method main
     .limit stack 6
     .limit locals 3   ; 0=n, 1=result, 2=counter
 

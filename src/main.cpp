@@ -79,10 +79,10 @@ int main(int argc, char** argv) {
     // For now we directly hand parsed instructions to IRBuilder
     auto irrep = assembler::IRBuilder::build(instructions);
 
-    if (!irrep.errors.empty()) {
-        std::cerr << "\n=== IR BUILD ERRORS ===\n";
-        for (auto &e : irrep.errors) std::cerr << e << "\n";
-    }
+    // if (!irrep.errors.empty()) {
+    //     std::cerr << "\n=== IR BUILD ERRORS ===\n";
+    //     for (auto &e : irrep.errors) std::cerr << e << "\n";
+    // }
 
     std::cout << "\n=== IR WORDS ===\n";
     for (size_t i = 0; i < irrep.words.size(); ++i) {

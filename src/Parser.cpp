@@ -191,7 +191,7 @@ void Parser::parse_directive() {
             return;
         }
         std::string methodName = cur().value;
-        advance();//after adding method signature in input file change
+        //advance();//after adding method signature in input file change
         if (cur().type != TokenType::IDENT) {
             errlist.push_back("Expected method signature after method name");
             return;
