@@ -1,9 +1,11 @@
 #include <iostream>
+#include <iomanip>
 #include "assembler/Tokenizer.hpp"
 #include "assembler/Parser.hpp"
 #include "assembler/Utils.hpp"
 #include "assembler/SymbolTable.hpp"
-#include "assembler/IR.hpp"    
+#include "assembler/IR.hpp"
+#include "assembler/Emitter.hpp"
 
 int main(int argc, char** argv) {
     if (argc < 2) {
@@ -36,21 +38,16 @@ int main(int argc, char** argv) {
     std::cout << "\n=== SYMBOL TABLE ===\n";
     const SymbolTable& symtab = parser.symbols();
 
-    // Labels
     for (auto &kv : symtab.labels()) {
         std::cout << "Label " << kv.first
                   << " -> addr=" << kv.second.address
                   << " (defined at line " << kv.second.line
                   << ", col " << kv.second.col << ")\n";
     }
-
-    // Constants
     for (auto &kv : symtab.constants()) {
         std::cout << "Const " << kv.first
                   << " = " << kv.second.value << "\n";
     }
-
-    // Methods
     for (auto &kv : symtab.methods()) {
         std::cout << "Method " << kv.first
                   << " addr=" << kv.second.address
@@ -59,38 +56,65 @@ int main(int argc, char** argv) {
                   << (kv.second.is_entry ? " [ENTRY]" : "")
                   << "\n";
     }
-
-    // Classes
     for (auto &kv : symtab.classes()) {
         std::cout << "Class " << kv.first
                   << " super=" << kv.second.super_name << "\n";
     }
 
-    // Report errors if any
     if (!parser.errors().empty()) {
         std::cerr << "\n=== ERRORS ===\n";
         for (auto &err : parser.errors())
             std::cerr << err << "\n";
         return 3;
     }
-    // (Future) Resolver stage goes here
-    // auto resolved = Resolver::resolve(instructions, parser.symbol_table());
 
-    // For now we directly hand parsed instructions to IRBuilder
+    // Build IR
     auto irrep = assembler::IRBuilder::build(instructions);
 
-    // if (!irrep.errors.empty()) {
-    //     std::cerr << "\n=== IR BUILD ERRORS ===\n";
-    //     for (auto &e : irrep.errors) std::cerr << e << "\n";
-    // }
+    if (!irrep.errors.empty()) {
+        std::cerr << "\n=== IR BUILD ERRORS ===\n";
+        for (auto &e : irrep.errors) std::cerr << e << "\n";
+    }
 
     std::cout << "\n=== IR WORDS ===\n";
     for (size_t i = 0; i < irrep.words.size(); ++i) {
         const auto &w = irrep.words[i];
-        std::cout << i << ": opcode=0x" << std::hex << (int)w.opcode << std::dec;
+        std::cout << i << ": opcode=0x" 
+          << std::hex << std::setw(2) << std::setfill('0') 
+          << (int)w.opcode << std::dec;
         for (auto v : w.imm) std::cout << " " << v;
         std::cout << "   (src line " << w.src_line << ")\n";
     }
+
+    //  Convert IR → raw bytecode
+    std::vector<uint8_t> code;
+    for (auto &w : irrep.words) {
+        code.push_back(w.opcode);
+        for (auto imm : w.imm) {
+            // store as little-endian 32-bit
+            for (int i = 0; i < 4; i++) {
+                code.push_back((imm >> (8 * i)) & 0xFF);
+            }
+        }
+    }
+
+    //  Prepare empty class metadata (we’ll extend later)
+    std::vector<assembler::ClassMeta> classes;
+    std::string inputFile = argv[1];
+    std::string outFile;
+
+    // replace ".asm" with ".vm" if it exists, else append
+    if (inputFile.size() >= 4 && inputFile.substr(inputFile.size() - 4) == ".asm") {
+        outFile = inputFile.substr(0, inputFile.size() - 4) + ".vm";
+    } else {
+        outFile = inputFile + ".vm";
+    }
+
+
+    //  Write VM binary file
+    assembler::writeVMFile(outFile, code, classes, 0);
+
+    std::cout << "\nWrote binary file: " << outFile << "\n";
 
     return 0;
 }
