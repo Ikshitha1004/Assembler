@@ -27,22 +27,45 @@ IRBuilder::Report IRBuilder::build(const std::vector<Instruction>& program) {
     for (size_t i = 0; i < program.size(); ++i) {
         const Instruction &ins = program[i];
         IRWord w;
-        w.opcode = static_cast<uint8_t>(ins.op);
+        w.opcode   = static_cast<uint8_t>(ins.op);
         w.src_line = ins.src_line;
         w.src_col  = ins.src_col;
 
         for (size_t oi = 0; oi < ins.operands.size(); ++oi) {
-            const std::string &opstr = ins.operands[oi].label;
-            int32_t val = 0;
-            if (!parse_int32(opstr, val)) {
-                std::ostringstream os;
-                os << "IR build error: non-numeric operand '" << opstr
-                   << "' at line " << ins.src_line << ", col " << ins.src_col
-                   << " (instr " << i << ", operand " << oi << ")";
-                rep.errors.push_back(os.str());
-                continue; 
+            const Operand &op = ins.operands[oi];
+
+            switch (op.kind) {
+                case Operand::Kind::Immediate:
+                    w.imm.push_back(op.imm);
+                    break;
+
+                case Operand::Kind::Label: {
+                    int32_t val = 0;
+                    if (!parse_int32(op.label, val)) {
+                        std::ostringstream os;
+                        os << "IR build error: non-numeric label operand '"
+                           << op.label << "' at line " << ins.src_line
+                           << ", col " << ins.src_col
+                           << " (instr " << i << ", operand " << oi << ")";
+                        rep.errors.push_back(os.str());
+                    } else {
+                        w.imm.push_back(val);
+                    }
+                    break;
+                }
+
+                case Operand::Kind::FieldRef:
+                case Operand::Kind::Register:
+                case Operand::Kind::MethodRef:
+                case Operand::Kind::ConstPoolIndex: {
+                    std::ostringstream os;
+                    os << "IR build error: unsupported operand kind at line "
+                       << ins.src_line << ", col " << ins.src_col
+                       << " (instr " << i << ", operand " << oi << ")";
+                    rep.errors.push_back(os.str());
+                    break;
+                }
             }
-            w.imm.push_back(val);
         }
 
         rep.words.push_back(std::move(w));
