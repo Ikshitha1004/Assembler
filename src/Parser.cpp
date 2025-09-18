@@ -8,8 +8,8 @@
 #include <sstream>
 #include <iostream>
 #include <limits>
+#include <iostream> 
 #include <utility> // for std::move
-
 static uint32_t instr_size_bytes(const Instruction& ins) {
     switch (ins.op) {
         // 0-operand ops: 1 byte opcode
@@ -447,7 +447,6 @@ void Parser::parse_line() {
     }
 }
 
-
 /*----------------------------------------------------------------------------------------
     Main parse (single pass + resolve forward label refs)
 -----------------------------------------------------------------------------------------*/
@@ -505,6 +504,7 @@ std::vector<Instruction> Parser::parse() {
 
     return instrs;
 }
+
 
 const std::vector<std::string>& Parser::errors() const {
     return errlist;
