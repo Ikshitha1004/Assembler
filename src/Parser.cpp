@@ -3,9 +3,10 @@
 // ============================================================================
 
 #include "assembler/Parser.hpp"
-#include "assembler/Utils.hpp"          // to_uppercopy
+#include "assembler/Utils.hpp" 
 #include <cctype>
 #include <sstream>
+#include <iostream>
 #include <limits>
 #include <utility> // for std::move
 
@@ -18,7 +19,6 @@ static uint32_t instr_size_bytes(const Instruction& ins) {
         case OpCode::RET:
         case OpCode::ICMP_EQ: case OpCode::ICMP_LT: case OpCode::ICMP_GT:
             return 1;
-
         // 1-operand ops: opcode + 4-byte operand = 5 bytes
         case OpCode::PUSH:
         case OpCode::LOAD: case OpCode::STORE:
@@ -160,8 +160,48 @@ void Parser::parse_directive() {
     std::string dir = cur().value; 
     int line = cur().line, col = cur().col;
     advance();
+    if (dir == ".data") {
+        symtab.begin_data();
+    }
+    else if (dir == ".text") {
+        symtab.begin_text();
+    }
+    else if (dir == ".word") {
+        if (cur().type != TokenType::IDENT) {
+            errlist.push_back("Expected label before .word at line " + std::to_string(line));
+            return;
+        }
+        std::string name = cur().value;
+        advance();
 
-    if (dir == ".class") {
+        if (cur().type != TokenType::NUMBER) {
+            errlist.push_back("Expected numbers after .word " + name);
+            return;
+        }
+
+        std::vector<int32_t> vals;
+        while (cur().type == TokenType::NUMBER) {
+            vals.push_back(std::stoi(cur().value));
+            advance();
+            if (cur().type == TokenType::COMMA) advance();
+        }
+
+        if (!symtab.define_data_symbol(name, vals)) {
+            errlist.push_back("Duplicate or invalid data symbol: " + name);
+        }
+    }
+        else if (dir == ".endclass") {
+            if (!symtab.end_class()) {
+                errlist.push_back("'.endclass' without active class at line " + std::to_string(line));
+            }
+        }
+        else if (dir == ".endmethod") {
+            if (!symtab.end_method()) {
+                errlist.push_back("'.endmethod' without active method at line " + std::to_string(line));
+            }
+        }
+
+    else  if (dir == ".class") {
         if (cur().type != TokenType::IDENT) {
             errlist.push_back("Expected class name after .class");
             return;
@@ -360,17 +400,37 @@ void Parser::parse_line() {
                     case OpCode::JMP:
                     case OpCode::JZ:
                     case OpCode::JNZ:
-                    case OpCode::CALL: {
+                    {
                         const Operand& op = ins.operands[0];
-                        if (op.kind == Operand::Kind::Label &&
-                            !is_number_literal(op.label)) {
-                            symtab.add_label_reference(
-                                instrs.size(), 0, op.label,
-                                ins.src_line, ins.src_col
-                            );
-                        }
-                        break;
+                    if (op.kind == Operand::Kind::Label && !is_number_literal(op.label)) {
+                        symtab.add_label_reference(instrs.size(), 0, op.label,
+                                                ins.src_line, ins.src_col);
                     }
+                    break;
+                    }
+                   case OpCode::CALL: {
+                    const Operand& op = ins.operands[0];
+                    if (op.kind == Operand::Kind::Label && !is_number_literal(op.label)) {
+                        std::cout<<"Method call to label: " << op.label << " at line " << ins.src_line << "\n";
+                        auto p= symtab.get_method(op.label);
+                        bool found = p.first;
+                        std::cout<<"Method found: " << found << "\n";
+                        const MethodInfo& methodInfo = p.second;
+                        if (found) {
+                            // Replace label operand with an immediate numeric one
+                            Operand newOp;
+                            newOp.kind = Operand::Kind::Immediate;
+                            //pu tin immediate
+                            newOp.imm = methodInfo.address;
+                            ins.operands[0] = newOp;
+                        } else {
+                            std::cerr << "Error: undefined method " << op.label
+                                    << " at line " << ins.src_line << "\n";
+                        }
+                    }
+                    break;
+                    }
+
                     default:
                         break;
                 }
@@ -392,21 +452,26 @@ void Parser::parse_line() {
     Main parse (single pass + resolve forward label refs)
 -----------------------------------------------------------------------------------------*/
 std::vector<Instruction> Parser::parse() {
-    // reset state (keep base address)
     idx = 0;
     instrs.clear();
     errlist.clear();
 
-    // Clear symbol table but preserve base; easiest is reassign:
-    {
-        uint32_t base = symtab.base();
-        symtab = SymbolTable(base);
-        symtab.reset_lc();
-    }
+    uint32_t base = symtab.base();
+    symtab = SymbolTable(base);
+    symtab.reset_lc();
 
     // pass 1: read tokens into IR and collect labels/refs
     while (cur().type != TokenType::END_OF_FILE) {
+        std::cout << "[DEBUG] idx=" << idx 
+                  << " token=" << cur().value 
+                  << " type=" << static_cast<int>(cur().type) << std::endl;
+
+        size_t old_idx = idx;
         parse_line();
+        if (idx == old_idx) {
+            std::cerr << "[ERROR] idx did not advance, breaking to avoid infinite loop!" << std::endl;
+            break;
+        }
     }
 
     // pass 2: resolve pending label references
@@ -428,7 +493,6 @@ std::vector<Instruction> Parser::parse() {
             errlist.push_back(os.str());
             continue;
         }
-        // Write absolute address into operand string
         uint32_t addr = found.second.address;
         if (r.operand_index >= target_ins.operands.size()) {
             std::ostringstream os;
@@ -445,4 +509,6 @@ std::vector<Instruction> Parser::parse() {
 const std::vector<std::string>& Parser::errors() const {
     return errlist;
 }
-
+//TODO :need anorher pass of ins before writing to vm fir resolving and putting only operandsthat areneeded (oprand is a struct)
+//TODO : access modifiers and polymorphism not handled in the gien output
+//TODO : data seg needs to be handled.

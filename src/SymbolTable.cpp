@@ -126,7 +126,8 @@ std::pair<bool, ClassInfo> SymbolTable::get_class(const std::string& class_name)
 bool SymbolTable::begin_method(const std::string& method_name,
                                const std::string& signature) {
     std::string key = make_method_key(current_class_, method_name, signature);
-    // std::cout<<"KEY"<<key<<std::endl;
+
+     std::cout<<"KEY"<<key<<std::endl;
     if (methods_.find(key) != methods_.end()) {
         return false; // duplicate method key
     }
@@ -159,6 +160,18 @@ bool SymbolTable::set_method_stack_limit(uint32_t limit) {
     it->second.stack_limit = limit;
     return true;
 }
+bool SymbolTable::define_data_symbol(const std::string& name, const std::vector<int32_t>& values) {
+    if (data_symbols_.find(name) != data_symbols_.end()) return false;
+    data_symbols_[name] = values;
+    return true;
+}
+
+std::pair<bool, std::vector<int32_t>> SymbolTable::get_data_symbol(const std::string& name) const {
+    auto it = data_symbols_.find(name);
+    if (it == data_symbols_.end()) return {false, {}};
+    return {true, it->second};
+}
+
 
 bool SymbolTable::set_method_locals_limit(uint32_t limit) {
     if (current_method_key_.empty()) return false;
@@ -243,6 +256,6 @@ std::string SymbolTable::make_field_key(const std::string& owner,
 std::string SymbolTable::make_method_key(const std::string& owner,
                                          const std::string& name,
                                          const std::string& sig) {
-    if (owner.empty()) return name + ":" + sig;
-    return owner + "." + name + ":" + sig;
+    if (owner.empty()) return name ;
+    return owner + "." + name ;
 }

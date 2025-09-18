@@ -10,6 +10,8 @@
 #include <unordered_map>
 #include <vector>
 
+enum class Section { NONE, DATA, TEXT };
+
 struct LabelInfo {
     uint32_t address;     // absolute byte address = base + LC at definition time
     int line;             
@@ -161,6 +163,16 @@ public:
     const std::string& current_class() const { return current_class_; }
     const std::string& current_method_key() const { return current_method_key_; }
 
+        // ----- Sections (.data / .text) -----
+        void begin_data() { current_section_ = Section::DATA; }
+        void begin_text() { current_section_ = Section::TEXT; }
+        Section current_section() const { return current_section_; }
+
+        // data symbol management
+        bool define_data_symbol(const std::string& name, const std::vector<int32_t>& values);
+        std::pair<bool, std::vector<int32_t>> get_data_symbol(const std::string& name) const;
+
+
 private:
     uint32_t base_address_;
     uint32_t lc_bytes_;
@@ -180,6 +192,14 @@ private:
     // active scopes
     std::string current_class_;
     std::string current_method_key_;
+
+    // active section tracking
+Section current_section_ = Section::NONE;
+
+// data symbols (for .data section)
+// name -> vector of values (since a label may refer to an array of constants)
+std::unordered_map<std::string, std::vector<int32_t>> data_symbols_;
+
 };
 
 #endif // ARM_ALL_ASSEMBLER_SYMBOLTABLE_HPP
