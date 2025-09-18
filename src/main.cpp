@@ -6,6 +6,8 @@
 #include "assembler/SymbolTable.hpp"
 #include "assembler/IR.hpp"
 #include "assembler/Emitter.hpp"
+#include "assembler/ConstantPool.hpp"
+using assembler::ConstTag;
 
 int main(int argc, char** argv) {
     if (argc < 2) {
@@ -68,6 +70,22 @@ int main(int argc, char** argv) {
         return 3;
     }
 
+    // === Constant Pool Debug Print ===
+const auto &cp = parser.get_constpool().entries();
+std::cout << "\n=== CONSTANT POOL ===\n";
+for (auto &e : cp) {
+    std::cout << "#" << e.index << " ";
+    switch (e.tag) {
+        case ConstTag::INT:      std::cout << "INT "; break;
+        case ConstTag::FLOAT:    std::cout << "FLOAT "; break;
+        case ConstTag::STRING:   std::cout << "STRING "; break;
+        case ConstTag::CLASSREF: std::cout << "CLASS "; break;
+        case ConstTag::METHODREF:std::cout << "METHOD "; break;
+        case ConstTag::FIELDREF: std::cout << "FIELD "; break;
+    }
+    std::cout << e.value << "\n";
+}
+
     // Build IR
     auto irrep = assembler::IRBuilder::build(instructions);
 
@@ -98,7 +116,16 @@ int main(int argc, char** argv) {
         }
     }
 
-    //  Prepare empty class metadata (we’ll extend later)
+  std::vector<uint8_t> pool_bytes;
+parser.get_constpool().emit(pool_bytes);
+
+
+    // final buffer = [constant pool][code]
+    std::vector<uint8_t> final_bytes;
+    final_bytes.insert(final_bytes.end(), pool_bytes.begin(), pool_bytes.end());
+    final_bytes.insert(final_bytes.end(), code.begin(), code.end());
+
+    // Prepare empty class metadata (extend later)
     std::vector<assembler::ClassMeta> classes;
     std::string inputFile = argv[1];
     std::string outFile;
@@ -110,9 +137,8 @@ int main(int argc, char** argv) {
         outFile = inputFile + ".vm";
     }
 
-
     //  Write VM binary file
-    assembler::writeVMFile(outFile, code, classes, 0);
+    assembler::writeVMFile(outFile, final_bytes, classes, 0);
 
     std::cout << "\nWrote binary file: " << outFile << "\n";
 

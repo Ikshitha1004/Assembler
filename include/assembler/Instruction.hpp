@@ -1,5 +1,6 @@
 /*----------------------------------------------------------------------------------------
     This module was written by Ikshitha (CS22B027)
+    Updated by Sahiti for Constant Pool integration(Module 4)
 -------------------------------------------------------------------------------------------*/
 
 #ifndef ASSEMBLER_Instruction_hpp
@@ -48,27 +49,31 @@ enum class OpCode : uint8_t {
     INVALID = 0xFF
 };
 
-// struct Instruction {
-//     OpCode op;
-//     std::vector<std::string> operands; 
-//     int src_line{0};
-//     int src_col{0};
-// };
-
 struct Operand {
-    enum class Kind { Register, Immediate, Label, FieldRef, MethodRef, ConstPoolIndex };
-    Kind kind;
+    enum class Kind { 
+        Register, 
+        Immediate, 
+        Label, 
+        FieldRef, 
+        MethodRef, 
+        ConstPoolIndex 
+    };
 
-    int reg;
-    int imm;
-    std::string label;
-    struct { std::string clazz, name, desc; } fieldref;
+    Kind kind {Kind::Immediate};
+
+    // Possible payloads
+    int reg = -1;                     // for Register
+    int imm = 0;                      // for Immediate
+    int pool_index = -1;              // for ConstPoolIndex
+    std::string label;                // for Label
+    struct { std::string clazz, name, desc; } fieldref; // for FieldRef
 };
+
 struct Instruction {
-    OpCode op;
+    OpCode op {OpCode::INVALID};
     std::vector<Operand> operands; 
-    int src_line;
-    int src_col;
+    int src_line {0};
+    int src_col {0};
 };
 
 std::string opcode_to_string(OpCode oc);

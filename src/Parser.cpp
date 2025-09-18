@@ -59,30 +59,6 @@ bool Parser::expect(TokenType t) {
     return false;
 }
 
-void Parser::parse_operands(Instruction &ins) {
-    while (true) {
-            if (cur().type == TokenType::NUMBER) {
-            Operand op;
-            op.kind = Operand::Kind::Immediate;
-            op.imm = std::stoi(cur().value);
-            ins.operands.push_back(op);
-            advance();
-        }
-        else if (cur().type == TokenType::IDENT) {
-            Operand op;
-            op.kind = Operand::Kind::Label;  
-            op.label = cur().value;
-            ins.operands.push_back(op);
-            advance();
-        }
-      else {
-            break;
-        }
-        if (cur().type == TokenType::COMMA) advance();
-        else break;
-    }
-}
-
 static bool is_number_literal(const std::string& s) {
     if (s.empty()) return false;
     size_t i = 0;
@@ -93,6 +69,47 @@ static bool is_number_literal(const std::string& s) {
     }
     return true;
 }
+
+
+void Parser::parse_operands(Instruction &ins) {
+    while (true) {
+        if (cur().type == TokenType::NUMBER) {
+            //  Convert numbers into constant pool entries
+            int val = std::stoi(cur().value);
+            int idx = constpool.add_int(val);
+
+            Operand op;
+            op.kind = Operand::Kind::ConstPoolIndex;
+            op.pool_index = idx;
+            ins.operands.push_back(op);
+
+            advance();
+        }
+        else if (cur().type == TokenType::IDENT) {
+            //  Could be label or string literal
+            Operand op;
+            if (is_number_literal(cur().value)) {
+                int val = std::stoi(cur().value);
+                int idx = constpool.add_int(val);
+                op.kind = Operand::Kind::ConstPoolIndex;
+                op.pool_index = idx;
+            } else {
+                // Treat as label for now, resolved later
+                op.kind = Operand::Kind::Label;
+                op.label = cur().value;
+            }
+            ins.operands.push_back(op);
+            advance();
+        }
+        else {
+            break;
+        }
+
+        if (cur().type == TokenType::COMMA) advance();
+        else break;
+    }
+}
+
 
 /*----------------------------------------------------------------------------------------
 This function was written by Dakshayani
@@ -304,7 +321,7 @@ void Parser::parse_line() {
         // --- Special handling for GETFIELD / PUTFIELD ---
         if (oc == OpCode::GETFIELD || oc == OpCode::PUTFIELD) {
             Operand op;
-            op.kind = Operand::Kind::FieldRef;
+            op.kind = Operand::Kind::ConstPoolIndex; // store as pool entry
 
             std::vector<std::string> idents;
             while (cur().type == TokenType::IDENT) {
@@ -315,7 +332,6 @@ void Parser::parse_line() {
             if (idents.size() < 2) {
                 errlist.push_back("Malformed field reference, need class + field + descriptor");
             } else {
-                // Build class name = all but last 2
                 std::string clazz;
                 for (size_t i = 0; i < idents.size() - 2; ++i) {
                     if (!clazz.empty()) clazz += "/";
@@ -324,11 +340,11 @@ void Parser::parse_line() {
                 std::string fieldName = idents[idents.size() - 2];
                 std::string desc      = idents.back();
 
-                op.fieldref.clazz = clazz;
-                op.fieldref.name  = fieldName;
-                op.fieldref.desc  = desc;
+                std::string fq = clazz + "." + fieldName + ":" + desc;
+                int idx = constpool.add_field(fq);
+                op.pool_index = idx;
 
-                // Push into symbol table too
+                // still record in symbol table if needed
                 symtab.add_field(clazz, fieldName, desc,
                                  std::numeric_limits<uint32_t>::max());
             }
@@ -363,24 +379,12 @@ void Parser::parse_line() {
 
         validate_instruction(ins);
 
-        // Append instruction and advance LC
         instrs.push_back(std::move(ins));
         const Instruction& just = instrs.back();
         symtab.advance_lc(instr_size_bytes(just));
 
         return;
     }
-
-    if (cur().type == TokenType::IDENT || cur().type == TokenType::NUMBER) {
-        std::ostringstream os;
-        os << "Unexpected token '" << cur().value << "' at "
-           << cur().line << ":" << cur().col;
-        errlist.push_back(os.str());
-        advance();
-        return;
-    }
-
-    advance();
 }
 
 
@@ -441,3 +445,4 @@ std::vector<Instruction> Parser::parse() {
 const std::vector<std::string>& Parser::errors() const {
     return errlist;
 }
+

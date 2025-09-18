@@ -54,10 +54,15 @@ IRBuilder::Report IRBuilder::build(const std::vector<Instruction>& program) {
                     break;
                 }
 
+                case Operand::Kind::ConstPoolIndex: { //by Sahiti
+                    // [CONSTPOOL] Store pool index as operand
+                    w.imm.push_back(op.pool_index);
+                    break;
+                }
+
                 case Operand::Kind::FieldRef:
                 case Operand::Kind::Register:
-                case Operand::Kind::MethodRef:
-                case Operand::Kind::ConstPoolIndex: {
+                case Operand::Kind::MethodRef: {
                     std::ostringstream os;
                     os << "IR build error: unsupported operand kind at line "
                        << ins.src_line << ", col " << ins.src_col
