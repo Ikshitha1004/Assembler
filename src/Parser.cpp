@@ -7,8 +7,8 @@
 #include <cctype>
 #include <sstream>
 #include <limits>
+#include <iostream> 
 #include <utility> // for std::move
-
 static uint32_t instr_size_bytes(const Instruction& ins) {
     switch (ins.op) {
         // 0-operand ops: 1 byte opcode
@@ -387,26 +387,30 @@ void Parser::parse_line() {
     }
 }
 
-
 /*----------------------------------------------------------------------------------------
     Main parse (single pass + resolve forward label refs)
 -----------------------------------------------------------------------------------------*/
 std::vector<Instruction> Parser::parse() {
-    // reset state (keep base address)
     idx = 0;
     instrs.clear();
     errlist.clear();
 
-    // Clear symbol table but preserve base; easiest is reassign:
-    {
-        uint32_t base = symtab.base();
-        symtab = SymbolTable(base);
-        symtab.reset_lc();
-    }
+    uint32_t base = symtab.base();
+    symtab = SymbolTable(base);
+    symtab.reset_lc();
 
     // pass 1: read tokens into IR and collect labels/refs
     while (cur().type != TokenType::END_OF_FILE) {
+        std::cout << "[DEBUG] idx=" << idx 
+                  << " token=" << cur().value 
+                  << " type=" << static_cast<int>(cur().type) << std::endl;
+
+        size_t old_idx = idx;
         parse_line();
+        if (idx == old_idx) {
+            std::cerr << "[ERROR] idx did not advance, breaking to avoid infinite loop!" << std::endl;
+            break;
+        }
     }
 
     // pass 2: resolve pending label references
@@ -428,7 +432,6 @@ std::vector<Instruction> Parser::parse() {
             errlist.push_back(os.str());
             continue;
         }
-        // Write absolute address into operand string
         uint32_t addr = found.second.address;
         if (r.operand_index >= target_ins.operands.size()) {
             std::ostringstream os;
@@ -442,7 +445,7 @@ std::vector<Instruction> Parser::parse() {
     return instrs;
 }
 
+
 const std::vector<std::string>& Parser::errors() const {
     return errlist;
 }
-
