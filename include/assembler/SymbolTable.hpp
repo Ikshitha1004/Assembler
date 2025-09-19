@@ -75,7 +75,9 @@ public:
     // ----- Base + LC management -----
     void set_base(uint32_t base) { base_address_ = base; }
     uint32_t base() const { return base_address_; }
-
+    std::string get_current_class() const {
+        return current_class_;
+    }
     void reset_lc() { lc_bytes_ = 0; }
     uint32_t lc() const { return lc_bytes_; }
     void advance_lc(uint32_t bytes) { lc_bytes_ += bytes; }
@@ -144,6 +146,7 @@ public:
 
     // Lookup by key (same format as produced by make_method_key)
     std::pair<bool, MethodInfo> get_method(const std::string& method_key) const;
+    std::pair<bool, FieldInfo> get_field(const std::string& field_key) const;
 
     // ----- Diagnostics / Accessors -----
     const std::unordered_map<std::string, LabelInfo>&   labels()   const { return labels_; }

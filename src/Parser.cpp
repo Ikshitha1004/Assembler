@@ -242,23 +242,31 @@ void Parser::parse_directive() {
         }
         advance();
     }
-    else if (dir == ".method") {
-        if (cur().type != TokenType::IDENT) {
-            errlist.push_back("Expected method name after .method");
-            return;
-        }
-        std::string methodName = cur().value;
-        //advance();//after adding method signature in input file change
-        if (cur().type != TokenType::IDENT) {
-            errlist.push_back("Expected method signature after method name");
-            return;
-        }
-        std::string signature = cur().value;
-        if (!symtab.begin_method(methodName, signature)) {
-            errlist.push_back("Duplicate method: " + methodName + signature);
-        }
-        advance();
+  else if (dir == ".method") {
+    if (cur().type != TokenType::IDENT) {
+        errlist.push_back("Expected method name after .method");
+        return;
     }
+    std::string methodName = cur().value;
+    advance();
+
+    // if (cur().type != TokenType::IDENT) {
+    //     errlist.push_back("Expected method signature after method name");
+    //     return;
+    // }
+    // std::string signature = cur().value;
+    // advance();
+
+    // Use current_class_ if we are inside a class, else global method
+    auto owner = symtab.get_current_class();  // expose current_class_ via getter
+    if (!symtab.begin_method(methodName, "")) {
+        std::string fullKey = owner.empty()
+            ? methodName 
+            : owner + "." + methodName ;
+        errlist.push_back("Duplicate method: " + fullKey);
+    }
+}
+
     else if (dir == ".limit") {
         if (cur().type != TokenType::IDENT) {
             errlist.push_back("Expected 'stack' or 'locals' after .limit");
@@ -359,37 +367,43 @@ void Parser::parse_line() {
         advance(); // consume mnemonic
 
         // --- Special handling for GETFIELD / PUTFIELD ---
-        if (oc == OpCode::GETFIELD || oc == OpCode::PUTFIELD) {
-            Operand op;
-            op.kind = Operand::Kind::ConstPoolIndex; // store as pool entry
+      if (oc == OpCode::GETFIELD || oc == OpCode::PUTFIELD) {
+    Operand op;
 
-            std::vector<std::string> idents;
-            while (cur().type == TokenType::IDENT) {
-                idents.push_back(cur().value);
-                advance();
+    if (cur().type != TokenType::IDENT) {
+        errlist.push_back("Expected field reference after GETFIELD/PUTFIELD");
+    } else {
+        std::string fullIdent = cur().value; 
+        advance();
+
+        // Split at '.' into class and field
+        auto dotPos = fullIdent.find('.');
+        if (dotPos == std::string::npos) {
+            errlist.push_back("Malformed field reference, need ClassName.fieldName");
+        } else {
+            std::string clazz     = fullIdent.substr(0, dotPos);
+            std::string fieldName = fullIdent.substr(dotPos + 1);
+
+            // Build key for symbol table
+            std::string key = SymbolTable::make_field_key(clazz, fieldName);
+
+            // Lookup or auto-register
+            auto p= symtab.get_field(key);
+            bool found = p.first;
+            const FieldInfo& fieldInfo = p.second;
+            if (!found) {
+                errlist.push_back("Undefined field reference: " + key);
             }
 
-            if (idents.size() < 2) {
-                errlist.push_back("Malformed field reference, need class + field + descriptor");
-            } else {
-                std::string clazz;
-                for (size_t i = 0; i < idents.size() - 2; ++i) {
-                    if (!clazz.empty()) clazz += "/";
-                    clazz += idents[i];
-                }
-                std::string fieldName = idents[idents.size() - 2];
-                std::string desc      = idents.back();
-
-                std::string fq = clazz + "." + fieldName + ":" + desc;
-                int idx = constpool.add_field(fq);
-                op.pool_index = idx;
-
-                // still record in symbol table if needed
-                symtab.add_field(clazz, fieldName, desc,
-                                 std::numeric_limits<uint32_t>::max());
-            }
-            ins.operands.push_back(op);
+            // Encode operand
+           op.kind = Operand::Kind::ConstPoolIndex;
+           op.pool_index = fieldInfo.pool_index;
         }
+    }
+
+    ins.operands.push_back(op);
+}
+
         else {
             // --- Default operand parsing ---
             parse_operands(ins);
@@ -408,7 +422,32 @@ void Parser::parse_line() {
                     }
                     break;
                     }
-                   case OpCode::CALL: {
+                    case OpCode::INVOKESPECIAL:
+                    case OpCode::INVOKEVIRTUAL:
+                    {
+                    const Operand& op = ins.operands[0];
+                    if (op.kind == Operand::Kind::Label && !is_number_literal(op.label)) {
+                        std::cout<<"Method call to label: " << op.label << " at line " << ins.src_line << "\n";
+                        auto p= symtab.get_method(op.label);
+                        bool found = p.first;
+                        std::cout<<"Method found: " << found << "\n";
+                        const MethodInfo& methodInfo = p.second;
+                        if (found) {
+                            // Replace label operand with an immediate numeric one
+                            Operand newOp;
+                            newOp.kind = Operand::Kind::Immediate;
+                            //pu tin immediate
+                            newOp.imm = methodInfo.address;
+                            ins.operands[0] = newOp;
+                        } else {
+                            std::cerr << "Error: undefined method " << op.label
+                                    << " at line " << ins.src_line << "\n";
+                        }
+                    }
+                    break;
+                    }
+                   case OpCode::CALL:
+                    {
                     const Operand& op = ins.operands[0];
                     if (op.kind == Operand::Kind::Label && !is_number_literal(op.label)) {
                         std::cout<<"Method call to label: " << op.label << " at line " << ins.src_line << "\n";

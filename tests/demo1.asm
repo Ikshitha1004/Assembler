@@ -4,16 +4,6 @@
 ; Class definition
 ; -------------------
 .class MyClass
-.method setValues
-    .limit stack 2
-    .limit locals 2   ; 0=x, 1=y
-    LOAD 0
-    STORE 0
-    LOAD 1
-    STORE 1
-    RET
-.endmethod
-
 .method sum
     .limit stack 2
     .limit locals 3   ; 0=x, 1=y, 2=result
@@ -26,6 +16,15 @@
 .endmethod
 .endclass
 
+.method setValues
+    .limit stack 2
+    .limit locals 2   ; 0=x, 1=y
+    LOAD 0
+    STORE 0
+    LOAD 1
+    STORE 1
+    RET
+.endmethod
 ; -------------------
 ; Main program
 ; -------------------
@@ -38,7 +37,7 @@
     STORE 0
     PUSH 10
     STORE 1
-    CALL MyClass.setValues
+    INVOKEVIRTUAL  MyClass.sum
     
     ; Loop over array NUMS and add each value to x
     PUSH 0
@@ -78,7 +77,7 @@ LOOP_START:
 LOOP_END:
 
     ; Compute total = x + y
-    CALL MyClass.sum
+    CALL setValues
     STORE 2          ; total = sum result
 
     RET

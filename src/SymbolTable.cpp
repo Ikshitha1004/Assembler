@@ -245,6 +245,12 @@ std::pair<bool, MethodInfo> SymbolTable::get_method(const std::string& method_ke
     if (it == methods_.end()) return {false, MethodInfo{}};
     return {true, it->second};
 }
+std::pair<bool, FieldInfo> SymbolTable::get_field(const std::string& field_key) const {
+    auto it = fields_.find(field_key);
+    if (it == fields_.end()) return {false, FieldInfo{}};
+    return {true, it->second};
+}
+
 
 // ----- Key builders -----
 
