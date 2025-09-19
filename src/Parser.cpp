@@ -73,18 +73,25 @@ static bool is_number_literal(const std::string& s) {
 
 void Parser::parse_operands(Instruction &ins) {
     while (true) {
-        if (cur().type == TokenType::NUMBER) {
-            //  Convert numbers into constant pool entries
-            int val = std::stoi(cur().value);
-            int idx = constpool.add_int(val);
+       if (cur().type == TokenType::NUMBER) {
+    int val = std::stoi(cur().value);
+    Operand op;
 
-            Operand op;
-            op.kind = Operand::Kind::ConstPoolIndex;
-            op.pool_index = idx;
-            ins.operands.push_back(op);
+    // Only PUSH goes through constant pool
+    if (ins.op == OpCode::PUSH) {
+        int idx = constpool.add_int(val);
+        op.kind = Operand::Kind::ConstPoolIndex;
+        op.pool_index = idx;
+    } else {
+        // LOAD, STORE, etc. use immediate
+        op.kind = Operand::Kind::Immediate;
+        op.imm = val;
+    }
 
-            advance();
-        }
+    ins.operands.push_back(op);
+    advance();
+}
+
         else if (cur().type == TokenType::IDENT) {
             //  Could be label or string literal
             Operand op;
@@ -331,7 +338,6 @@ void Parser::parse_directive() {
 /*----------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------*/
 
-
 void Parser::parse_line() {
     if (cur().type == TokenType::COMMENT) {
         advance();
@@ -366,8 +372,82 @@ void Parser::parse_line() {
 
         advance(); // consume mnemonic
 
-        // --- Special handling for GETFIELD / PUTFIELD ---
-      if (oc == OpCode::GETFIELD || oc == OpCode::PUTFIELD) {
+        Operand op;
+
+        // --- NEW ---
+        // if (oc == OpCode::NEW) {
+        //     if (cur().type != TokenType::IDENT) {
+        //         errlist.push_back("Expected class name after NEW");
+        //     } else {
+        //         std::string clsName = cur().value;
+        //         advance();
+        //         int poolIdx = constpool.add_class(clsName);
+
+        //         op.kind = Operand::Kind::ConstPoolIndex;
+        //         op.pool_index = poolIdx;
+        //         ins.operands.push_back(op);
+        //     }
+        // }
+        // // --- GETFIELD / PUTFIELD ---
+        // else if (oc == OpCode::GETFIELD || oc == OpCode::PUTFIELD) {
+        //     if (cur().type != TokenType::IDENT) {
+        //         errlist.push_back("Expected field reference Class.field after GETFIELD/PUTFIELD");
+        //     } else {
+        //         std::string fullIdent = cur().value;
+        //         advance();
+
+        //         auto dotPos = fullIdent.find('.');
+        //         if (dotPos == std::string::npos) {
+        //             errlist.push_back("Malformed field reference, expected Class.field");
+        //         } else {
+        //             std::string clazz = fullIdent.substr(0, dotPos);
+        //             std::string fieldName = fullIdent.substr(dotPos + 1);
+
+        //             auto p_field = symtab.get_field(SymbolTable::make_field_key(clazz, fieldName));
+        //             bool found_field = p_field.first;
+        //             const FieldInfo &finfo = p_field.second;
+
+        //             if (!found_field) {
+        //                 errlist.push_back("Undefined field reference: " + clazz + "." + fieldName);
+        //             }
+
+        //             op.kind = Operand::Kind::ConstPoolIndex;
+        //             op.pool_index = finfo.pool_index;
+        //             ins.operands.push_back(op);
+        //         }
+        //     }
+        // }
+        
+        // --- INVOKEVIRTUAL / INVOKESPECIAL / CALL ---
+        // else if (oc == OpCode::INVOKEVIRTUAL || oc == OpCode::INVOKESPECIAL) {
+        //     if (cur().type != TokenType::IDENT) {
+        //         errlist.push_back("Expected method reference Class.method after INVOKE");
+        //     } else {
+        //         std::string fullIdent = cur().value;
+        //         advance();
+
+        //         auto dotPos = fullIdent.find('.');
+        //         if (dotPos == std::string::npos) {
+        //             errlist.push_back("Malformed method reference, expected Class.method");
+        //         } else {
+        //             std::string clazz = fullIdent.substr(0, dotPos);
+        //             std::string methodName = fullIdent.substr(dotPos + 1);
+
+        //             auto p_method = symtab.get_method(methodName); // adjust key if needed
+        //             bool found_method = p_method.first;
+        //             const MethodInfo &minfo = p_method.second;
+
+        //             if (!found_method) {
+        //                 errlist.push_back("Undefined method reference: " + clazz + "." + methodName);
+        //             }
+
+        //             op.kind = Operand::Kind::ConstPoolIndex;
+        //             op.pool_index = minfo.pool_index;
+        //             ins.operands.push_back(op);
+        //         }
+        //     }
+        // }
+    if (oc == OpCode::GETFIELD || oc == OpCode::PUTFIELD) {
     Operand op;
 
     if (cur().type != TokenType::IDENT) {
@@ -403,12 +483,11 @@ void Parser::parse_line() {
 
     ins.operands.push_back(op);
 }
-
+        // --- Default parsing for other instructions ---
         else {
-            // --- Default operand parsing ---
             parse_operands(ins);
 
-            // For jumps/calls: record label reference if operand is not numeric
+            // For jumps: record label references
             if (ins.operands.size() == 1) {
                 switch (oc) {
                     case OpCode::JMP:
@@ -416,11 +495,11 @@ void Parser::parse_line() {
                     case OpCode::JNZ:
                     {
                         const Operand& op = ins.operands[0];
-                    if (op.kind == Operand::Kind::Label && !is_number_literal(op.label)) {
-                        symtab.add_label_reference(instrs.size(), 0, op.label,
-                                                ins.src_line, ins.src_col);
-                    }
-                    break;
+                        if (op.kind == Operand::Kind::Label && !is_number_literal(op.label)) {
+                            symtab.add_label_reference(instrs.size(), 0, op.label,
+                                                      ins.src_line, ins.src_col);
+                        }
+                        break;
                     }
                     case OpCode::INVOKESPECIAL:
                     case OpCode::INVOKEVIRTUAL:
@@ -446,7 +525,7 @@ void Parser::parse_line() {
                     }
                     break;
                     }
-                   case OpCode::CALL:
+                     case OpCode::CALL:
                     {
                     const Operand& op = ins.operands[0];
                     if (op.kind == Operand::Kind::Label && !is_number_literal(op.label)) {
@@ -469,7 +548,6 @@ void Parser::parse_line() {
                     }
                     break;
                     }
-
                     default:
                         break;
                 }
@@ -479,12 +557,12 @@ void Parser::parse_line() {
         validate_instruction(ins);
 
         instrs.push_back(std::move(ins));
-        const Instruction& just = instrs.back();
-        symtab.advance_lc(instr_size_bytes(just));
+        symtab.advance_lc(instr_size_bytes(instrs.back()));
 
         return;
     }
 }
+
 
 /*----------------------------------------------------------------------------------------
     Main parse (single pass + resolve forward label refs)

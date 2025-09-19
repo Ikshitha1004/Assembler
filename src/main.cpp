@@ -83,16 +83,16 @@ for (auto &e : cp) {
         case ConstTag::METHODREF:std::cout << "METHOD "; break;
         case ConstTag::FIELDREF: std::cout << "FIELD "; break;
     }
-    std::cout << e.value << "\n";
+    std::cout << e.str<< "\n";
 }
 
     // Build IR
     auto irrep = assembler::IRBuilder::build(instructions);
 
-    if (!irrep.errors.empty()) {
-        std::cerr << "\n=== IR BUILD ERRORS ===\n";
-        for (auto &e : irrep.errors) std::cerr << e << "\n";
-    }
+    // if (!irrep.errors.empty()) {
+    //     std::cerr << "\n=== IR BUILD ERRORS ===\n";
+    //     for (auto &e : irrep.errors) std::cerr << e << "\n";
+    // }
 
     std::cout << "\n=== IR WORDS ===\n";
     for (size_t i = 0; i < irrep.words.size(); ++i) {

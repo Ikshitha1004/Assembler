@@ -37,6 +37,8 @@ struct MethodInfo {
     uint32_t    stack_limit;  // from .limit stack
     uint32_t    locals_limit; // from .limit locals
     bool        is_entry;     // from .entry
+     uint32_t    pool_index; 
+
 
     MethodInfo()
         : address(0), stack_limit(0), locals_limit(0), is_entry(false) {}
