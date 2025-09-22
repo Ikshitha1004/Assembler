@@ -3,7 +3,6 @@
 ; -------------------
 ; Class definition
 ; -------------------
-.class MyClass
 .method sum
     .limit stack 2
     .limit locals 3   ; 0=x, 1=y, 2=result
@@ -14,7 +13,6 @@
     LOAD 2
     RET
 .endmethod
-.endclass
 
 .method setValues
     .limit stack 2
@@ -31,13 +29,11 @@
 .method main
     .limit stack 6
     .limit locals 5   ; 0=x, 1=y, 2=total, 3=i, 4=temp
-
     ; Initialize object values (x=5, y=10)
     PUSH 5
     STORE 0
     PUSH 10
     STORE 1
-    INVOKEVIRTUAL  MyClass.sum
     
     ; Loop over array NUMS and add each value to x
     PUSH 0

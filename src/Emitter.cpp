@@ -18,7 +18,7 @@ void assembler::writeVMFile(
     const std::string& filename,
     const std::vector<uint8_t>& code,
     const std::vector<ClassMeta>& classes,
-    uint32_t entryPoint
+    uint32_t entryPoint /* can ignore input, will compute from main */
 ) {
     BinaryWriter writer;
 
@@ -26,7 +26,7 @@ void assembler::writeVMFile(
     Header hdr{};
     hdr.magic = 0x01004D56;   // "VM\1"
     hdr.version = 1;
-    hdr.entryPoint = entryPoint;
+    hdr.entryPoint = 0;        // temporary, will update after finding main
 
     hdr.constPoolOffset = sizeof(Header);
     hdr.constPoolSize   = 0;
@@ -47,17 +47,25 @@ void assembler::writeVMFile(
 
     // --- Write class metadata ---
     size_t classMetaStart = writer.data().size();
-
     writer.write((uint32_t)classes.size());
+
+    // Track main offset
+    uint32_t mainOffset = 0;
+
     for (auto& cls : classes) {
         writer.writeString(cls.name);
         writer.write((int32_t)cls.superclass);
-        writer.write((uint32_t)0); // field count (not yet used)
+        writer.write((uint32_t)0); // field count
         writer.write((uint32_t)cls.methods.size());
 
         for (auto& m : cls.methods) {
             writer.writeString(m.name);
             writer.write(m.codeOffset);
+
+            // If this is "main", record its offset
+            if (m.name == "main") {
+                mainOffset = m.codeOffset;
+            }
         }
     }
 
@@ -69,7 +77,11 @@ void assembler::writeVMFile(
     hdrPtr->classMetadataOffset = classMetaStart;
     hdrPtr->classMetadataSize   = classMetaSize;
 
+    // Set entry point to main
+    hdrPtr->entryPoint = mainOffset;
+
     // --- Write file ---
     std::ofstream out(filename, std::ios::binary);
     out.write((char*)writer.data().data(), writer.data().size());
 }
+
