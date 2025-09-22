@@ -77,37 +77,40 @@ void Parser::parse_operands(Instruction &ins) {
     int val = std::stoi(cur().value);
     Operand op;
 
-    // Only PUSH goes through constant pool
-    if (ins.op == OpCode::PUSH) {
-        int idx = constpool.add_int(val);
-        op.kind = Operand::Kind::ConstPoolIndex;
-        op.pool_index = idx;
-    } else {
+    // // Only PUSH goes through constant pool
+    // if (ins.op == OpCode::PUSH) {
+    //     int idx = constpool.add_int(val);
+    //     op.kind = Operand::Kind::ConstPoolIndex;
+    //     op.pool_index = idx;
+    // } else {
         // LOAD, STORE, etc. use immediate
         op.kind = Operand::Kind::Immediate;
         op.imm = val;
+    // }
+
+    ins.operands.push_back(op);
+    advance();
+}
+
+       else if (cur().type == TokenType::IDENT) {
+    // Could be a number (as string) or a label
+    Operand op;
+
+    if (is_number_literal(cur().value)) {
+        // Directly store as immediate
+        int val = std::stoi(cur().value);
+        op.kind = Operand::Kind::Immediate;
+        op.imm = val;
+    } else {
+        // Treat as label for now, resolved later
+        op.kind = Operand::Kind::Label;
+        op.label = cur().value;
     }
 
     ins.operands.push_back(op);
     advance();
 }
 
-        else if (cur().type == TokenType::IDENT) {
-            //  Could be label or string literal
-            Operand op;
-            if (is_number_literal(cur().value)) {
-                int val = std::stoi(cur().value);
-                int idx = constpool.add_int(val);
-                op.kind = Operand::Kind::ConstPoolIndex;
-                op.pool_index = idx;
-            } else {
-                // Treat as label for now, resolved later
-                op.kind = Operand::Kind::Label;
-                op.label = cur().value;
-            }
-            ins.operands.push_back(op);
-            advance();
-        }
         else {
             break;
         }
