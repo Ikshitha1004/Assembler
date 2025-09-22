@@ -206,6 +206,9 @@ void Parser::parse_directive() {
             }
         }
         else if (dir == ".endmethod") {
+            // uint32_t methodSize = symtab.lc() - methodStartOffset;
+            // symtab.set_method_size(methodName, methodSize);
+
             if (!symtab.end_method()) {
                 errlist.push_back("'.endmethod' without active method at line " + std::to_string(line));
             }
@@ -252,14 +255,15 @@ void Parser::parse_directive() {
         }
         advance();
     }
-  else if (dir == ".method") {
+
+else if (dir == ".method") {
     if (cur().type != TokenType::IDENT) {
         errlist.push_back("Expected method name after .method");
         return;
     }
+
     std::string methodName = cur().value;
     advance();
-
     // if (cur().type != TokenType::IDENT) {
     //     errlist.push_back("Expected method signature after method name");
     //     return;
@@ -269,12 +273,18 @@ void Parser::parse_directive() {
 
     // Use current_class_ if we are inside a class, else global method
     auto owner = symtab.get_current_class();  // expose current_class_ via getter
+
     if (!symtab.begin_method(methodName, "")) {
         std::string fullKey = owner.empty()
             ? methodName 
             : owner + "." + methodName ;
         errlist.push_back("Duplicate method: " + fullKey);
+        return;
     }
+
+    // --- Set method start address to current location counter ---
+    symtab.set_method_address(symtab.lc());
+
 }
 
     else if (dir == ".limit") {
@@ -530,6 +540,8 @@ void Parser::parse_line() {
                     }
                      case OpCode::CALL:
                     {
+       
+
                     const Operand& op = ins.operands[0];
                     if (op.kind == Operand::Kind::Label && !is_number_literal(op.label)) {
                         std::cout<<"Method call to label: " << op.label << " at line " << ins.src_line << "\n";
@@ -545,6 +557,7 @@ void Parser::parse_line() {
                             newOp.imm = methodInfo.address;
                             ins.operands[0] = newOp;
                         } else {
+                            
                             std::cerr << "Error: undefined method " << op.label
                                     << " at line " << ins.src_line << "\n";
                         }

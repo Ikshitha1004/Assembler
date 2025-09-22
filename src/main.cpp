@@ -79,9 +79,6 @@ for (auto &e : cp) {
         case ConstTag::INT:      std::cout << "INT "; break;
         case ConstTag::FLOAT:    std::cout << "FLOAT "; break;
         case ConstTag::STRING:   std::cout << "STRING "; break;
-        case ConstTag::CLASSREF: std::cout << "CLASS "; break;
-        case ConstTag::METHODREF:std::cout << "METHOD "; break;
-        case ConstTag::FIELDREF: std::cout << "FIELD "; break;
     }
     std::cout << e.str<< "\n";
 }
