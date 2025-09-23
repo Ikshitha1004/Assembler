@@ -72,7 +72,11 @@ std::vector<Token> Tokenizer::tokenize() {
             std::string ident;
             while (!eof() && (std::isalnum((unsigned char)peek()) || peek() == '_' || peek() == '.'))
                 ident.push_back(get());
-
+              // Directives start with '.'
+            if (!ident.empty() && ident[0] == '.') {
+                toks.push_back(make(TokenType::DIRECTIVE, ident, start_line, start_col));
+                continue;
+            }
             skip_space();
             if (!eof() && peek() == ':') {
                 get(); // consume ':'

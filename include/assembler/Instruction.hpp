@@ -1,5 +1,6 @@
 /*----------------------------------------------------------------------------------------
     This module was written by Ikshitha (CS22B027)
+    Updated by Sahiti for Constant Pool integration(Module 4)
 -------------------------------------------------------------------------------------------*/
 
 #ifndef ASSEMBLER_Instruction_hpp
@@ -48,14 +49,59 @@ enum class OpCode : uint8_t {
     INVALID = 0xFF
 };
 
+struct Operand {
+    enum class Kind { 
+        Register, 
+        Immediate, 
+        Label, 
+        FieldRef, 
+        MethodRef, 
+        ConstPoolIndex 
+    };
+
+    Kind kind {Kind::Immediate};
+
+    // Possible payloads
+    int reg = -1;                     // for Register
+    int imm = 0;                      // for Immediate
+    int pool_index = -1;              // for ConstPoolIndex
+    std::string label;                // for Label
+    struct { std::string clazz, name, desc; } fieldref; // for FieldRef
+};
+
 struct Instruction {
-    OpCode op;
-    std::vector<std::string> operands; 
-    int src_line;
-    int src_col;
+    OpCode op {OpCode::INVALID};
+    std::vector<Operand> operands; 
+    int src_line {0};
+    int src_col {0};
 };
 
 std::string opcode_to_string(OpCode oc);
 OpCode mnemonic_to_opcode(const std::string &m);
+
+// ----Added by Sahiti----
+inline std::size_t encoded_size(const Instruction& ins) {
+    switch (ins.op) {
+        // 1-byte, no operand
+        case OpCode::IADD: case OpCode::ISUB: case OpCode::IMUL:
+        case OpCode::IDIV: case OpCode::INEG:
+        case OpCode::POP:  case OpCode::DUP:
+        case OpCode::RET:
+        case OpCode::ICMP_EQ: case OpCode::ICMP_LT: case OpCode::ICMP_GT:
+            return 1;
+
+        // 1-byte opcode + 4-byte operand
+        case OpCode::PUSH:
+        case OpCode::LOAD:
+        case OpCode::STORE:
+        case OpCode::JMP: case OpCode::JZ: case OpCode::JNZ: case OpCode::CALL:
+        case OpCode::NEW: case OpCode::GETFIELD: case OpCode::PUTFIELD:
+        case OpCode::INVOKEVIRTUAL: case OpCode::INVOKESPECIAL:
+            return 1 + 4;
+
+        default:
+            return 1;
+    }
+}
 
 #endif // ASSEMBLER_Instruction_hpp

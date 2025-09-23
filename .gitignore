@@ -1,0 +1,4 @@
+.vscode/
+/bin
+/-p
+*.vm

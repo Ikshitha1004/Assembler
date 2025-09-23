@@ -5,25 +5,33 @@
 #ifndef ASSEMBLER_Parser_hpp
 #define ASSEMBLER_Parser_hpp
 
-#include "Token.hpp"
-#include "Instruction.hpp"
+#include "assembler/Token.hpp"
+#include "assembler/IR.hpp"
+#include "assembler/SymbolTable.hpp"
+#include "assembler/ConstantPool.hpp"   
 #include <vector>
-#include <unordered_map>
 #include <string>
 
 class Parser {
 public:
-    explicit Parser(const std::vector<Token> &toks);
+    Parser(const std::vector<Token>& t);
+
     std::vector<Instruction> parse();
     const std::vector<std::string>& errors() const;
-    const std::unordered_map<std::string,int>& labels() const;
+
+    const assembler::ConstantPool& get_constpool() const { return constpool; }
+    const SymbolTable& symbols() const { return symtab; }
+
 
 private:
-    std::vector<Token> toks;
+    const std::vector<Token>& toks;
     size_t idx;
+
     std::vector<Instruction> instrs;
-    std::unordered_map<std::string,int> label_map;
     std::vector<std::string> errlist;
+
+    SymbolTable symtab; //added for symbol table
+    assembler::ConstantPool constpool;
 
     const Token& cur() const;
     void advance();
@@ -32,6 +40,7 @@ private:
 
     void parse_line();
     void parse_operands(Instruction &ins);
+    void parse_directive();
     void validate_instruction(const Instruction &ins);
 };
 

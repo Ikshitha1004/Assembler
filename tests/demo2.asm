@@ -2,34 +2,34 @@
 
 start:
 ; --- Object creation ---
-NEW 1           ; allocate object (class_ref = 1)
+NEW MyClass           ; allocate object (class_ref = MyClass)
 DUP
 PUSH 77
-PUTFIELD 2      ; set field #2
-GETFIELD 2      ; get field #2
+PUTFIELD MyClass.myField      ; set field 'myField'
+GETFIELD MyClass.myField      ; get field 'myField'
 POP
 
 ; --- Virtual calls ---
-NEW 1
+NEW MyClass
 DUP
-INVOKEVIRTUAL 5 ; call virtual method (meth_ref = 5)
+INVOKEVIRTUAL MyClass.myMethod ; call virtual method 'myMethod'
 
-NEW 1
+NEW MyClass
 DUP
-INVOKESPECIAL 6 ; constructor/private method
+INVOKESPECIAL MyClass.init     ; constructor/private method
 
 ; --- Control flow with labels ---
 PUSH 0
 JZ branch_taken
 PUSH 100        ; skipped if zero
-JMP done
 
 branch_taken:
 PUSH 200
 
-done:
+; Call helper function
 CALL helper
-JMP done        ; infinite loop
+
+; End of program: VM stops naturally after last instruction
 
 helper:
 PUSH 55
