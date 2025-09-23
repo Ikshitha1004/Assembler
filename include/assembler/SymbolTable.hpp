@@ -34,6 +34,7 @@ struct MethodInfo {
     std::string name;         // "main"
     std::string signature;    // e.g., "(I)V" or "([Ljava/lang/String;)V"
     uint32_t    address;      // absolute byte address where method code starts (base+offset)
+    uint32_t    size;         // size of the method in bytes
     uint32_t    stack_limit;  // from .limit stack
     uint32_t    locals_limit; // from .limit locals
     bool        is_entry;     // from .entry

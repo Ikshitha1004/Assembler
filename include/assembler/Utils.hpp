@@ -25,19 +25,27 @@ inline std::size_t instruction_size(const Instruction& inst) {
         case OpCode::POP:  case OpCode::DUP:
         case OpCode::RET:
         case OpCode::ICMP_EQ: case OpCode::ICMP_LT: case OpCode::ICMP_GT:
-            return 1;
+        // case OpCode::ICMP_GEQ: case OpCode::ICMP_NEQ: case OpCode::ICMP_LEQ:
+        // case OpCode::FADD: case OpCode::FSUB: case OpCode::FMUL: case OpCode::FDIV: case OpCode::FNEG:
+        // case OpCode::FPOP:
+            return 1; // no operands or handled separately
 
         case OpCode::PUSH:
         case OpCode::LOAD:
         case OpCode::STORE:
-        case OpCode::JMP: case OpCode::JZ: case OpCode::JNZ: case OpCode::CALL:
+        // case OpCode::FPUSH:
         case OpCode::NEW: case OpCode::GETFIELD: case OpCode::PUTFIELD:
+        case OpCode::CALL:
         case OpCode::INVOKEVIRTUAL: case OpCode::INVOKESPECIAL:
-            return 1 + 4;
+            return 1 + 4; // 32-bit operands
+
+        case OpCode::JMP: case OpCode::JZ: case OpCode::JNZ:
+            return 1 + 2; // 16-bit operands
 
         default:
             return 1;
     }
 }
+
 
 #endif // ARM_ALL_ASSEMBLER_UTILS_HPP

@@ -58,7 +58,6 @@ std::pair<bool, ConstantInfo> SymbolTable::get_constant(const std::string& name)
 
 bool SymbolTable::begin_class(const std::string& class_name) {
     if (classes_.find(class_name) != classes_.end()) {
-        // already known class - still allow begin if we want to re-enter? keep simple -> reject
         return false;
     }
     ClassInfo ci;
@@ -82,10 +81,8 @@ bool SymbolTable::add_field(const std::string& owner_class,
                             const std::string& field_name,
                             const std::string& descriptor,
                             uint32_t pool_index) {
-    // ensure class exists
     auto cit = classes_.find(owner_class);
     if (cit == classes_.end()) {
-        // auto-create class entry if not present
         ClassInfo ci;
         ci.name = owner_class;
         ci.super_name = "";
@@ -96,7 +93,7 @@ bool SymbolTable::add_field(const std::string& owner_class,
 
     std::string key = make_field_key(owner_class, field_name);
     if (fields_.find(key) != fields_.end()) {
-        return false; // duplicate field
+        return false;
     }
 
     FieldInfo fi;
@@ -127,24 +124,24 @@ bool SymbolTable::begin_method(const std::string& method_name,
                                const std::string& signature) {
     std::string key = make_method_key(current_class_, method_name, signature);
 
-     std::cout<<"KEY"<<key<<std::endl;
+    std::cout << "KEY " << key << std::endl;
     if (methods_.find(key) != methods_.end()) {
-        return false; // duplicate method key
+        return false;
     }
     MethodInfo mi;
     mi.name = method_name;
     mi.signature = signature;
-    mi.address = 0;
+    mi.address = lc_bytes_;          // mark start address at current LC
+    mi.size = 0;                     // <-- NEW: will be filled at end_method
     mi.stack_limit = 0;
     mi.locals_limit = 0;
     mi.is_entry = false;
     methods_[key] = mi;
 
-    // also attach method name to class list (store keys or names)
     if (!current_class_.empty()) {
         auto cit = classes_.find(current_class_);
         if (cit != classes_.end()) {
-            cit->second.methods.push_back(key); // store key for unique identification
+            cit->second.methods.push_back(key);
         }
     }
 
@@ -153,13 +150,13 @@ bool SymbolTable::begin_method(const std::string& method_name,
 }
 
 bool SymbolTable::set_method_stack_limit(uint32_t limit) {
-    // std::cout<<"curr key"<<current_method_key_<<std::endl;
     if (current_method_key_.empty()) return false;
     auto it = methods_.find(current_method_key_);
     if (it == methods_.end()) return false;
     it->second.stack_limit = limit;
     return true;
 }
+
 bool SymbolTable::define_data_symbol(const std::string& name, const std::vector<int32_t>& values) {
     if (data_symbols_.find(name) != data_symbols_.end()) return false;
     data_symbols_[name] = values;
@@ -171,7 +168,6 @@ std::pair<bool, std::vector<int32_t>> SymbolTable::get_data_symbol(const std::st
     if (it == data_symbols_.end()) return {false, {}};
     return {true, it->second};
 }
-
 
 bool SymbolTable::set_method_locals_limit(uint32_t limit) {
     if (current_method_key_.empty()) return false;
@@ -199,6 +195,17 @@ bool SymbolTable::set_method_address(uint32_t address) {
 
 bool SymbolTable::end_method() {
     if (current_method_key_.empty()) return false;
+    auto it = methods_.find(current_method_key_);
+    if (it == methods_.end()) return false;
+
+    // <-- NEW: compute size based on LC
+    uint32_t current_end = lc_bytes_;
+    if (current_end >= it->second.address) {
+        it->second.size = current_end - it->second.address;
+    } else {
+        it->second.size = 0; // should not happen
+    }
+
     current_method_key_.clear();
     return true;
 }
@@ -217,13 +224,13 @@ bool SymbolTable::define_method(const std::string& class_name,
     mi.name = method_name;
     mi.signature = signature;
     mi.address = address;
+    mi.size = 0; // will be fixed later if needed
     mi.stack_limit = stack_limit;
     mi.locals_limit = locals_limit;
     mi.is_entry = is_entry;
 
     methods_[key] = mi;
 
-    // ensure class exists and attach
     if (!class_name.empty()) {
         auto cit = classes_.find(class_name);
         if (cit == classes_.end()) {
@@ -245,12 +252,12 @@ std::pair<bool, MethodInfo> SymbolTable::get_method(const std::string& method_ke
     if (it == methods_.end()) return {false, MethodInfo{}};
     return {true, it->second};
 }
+
 std::pair<bool, FieldInfo> SymbolTable::get_field(const std::string& field_key) const {
     auto it = fields_.find(field_key);
     if (it == fields_.end()) return {false, FieldInfo{}};
     return {true, it->second};
 }
-
 
 // ----- Key builders -----
 
@@ -262,6 +269,6 @@ std::string SymbolTable::make_field_key(const std::string& owner,
 std::string SymbolTable::make_method_key(const std::string& owner,
                                          const std::string& name,
                                          const std::string& sig) {
-    if (owner.empty()) return name ;
-    return owner + "." + name ;
+    if (owner.empty()) return name;
+    return owner + "." + name;
 }

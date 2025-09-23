@@ -1,7 +1,10 @@
-#pragma once
+#ifndef ASSEMBLER_Emitter_hpp
+#define ASSEMBLER_Emitter_hpp
+
 #include <cstdint>
 #include <vector>
 #include <string>
+#include "SymbolTable.hpp"
 
 namespace assembler {
 
@@ -19,19 +22,9 @@ struct Header {
     uint32_t classMetadataSize;
 };
 
-struct MethodMeta {
-    std::string name;
-    uint32_t codeOffset;
-};
-
-struct ClassMeta {
-    std::string name;
-    int32_t superclass; // -1 if none
-    std::vector<MethodMeta> methods;
-};
-
 class BinaryWriter {
     std::vector<uint8_t> buf;
+
 public:
     template <typename T>
     void write(const T& val) {
@@ -39,16 +32,19 @@ public:
         uint8_t* p = (uint8_t*)&tmp;
         buf.insert(buf.end(), p, p + sizeof(T));
     }
+
     void writeBytes(const std::vector<uint8_t>& v);
     void writeString(const std::string& s);
     const std::vector<uint8_t>& data() const { return buf; }
 };
 
+// Directly write VM file from SymbolTable
 void writeVMFile(
     const std::string& filename,
     const std::vector<uint8_t>& code,
-    const std::vector<ClassMeta>& classes,
-    uint32_t entryPoint = 0
+    const SymbolTable& symtab
 );
 
 } // namespace assembler
+
+#endif // ASSEMBLER_Emitter_hpp

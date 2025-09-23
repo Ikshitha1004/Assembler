@@ -1,6 +1,7 @@
 #include "assembler/Emitter.hpp"
+#include "assembler/SymbolTable.hpp"
 #include <fstream>
-#include <cstring>
+#include <iostream>
 
 using namespace assembler;
 
@@ -17,8 +18,7 @@ void BinaryWriter::writeString(const std::string& s) {
 void assembler::writeVMFile(
     const std::string& filename,
     const std::vector<uint8_t>& code,
-    const std::vector<ClassMeta>& classes,
-    uint32_t entryPoint /* can ignore input, will compute from main */
+    const SymbolTable& symtab
 ) {
     BinaryWriter writer;
 
@@ -26,7 +26,7 @@ void assembler::writeVMFile(
     Header hdr{};
     hdr.magic = 0x01004D56;   // "VM\1"
     hdr.version = 1;
-    hdr.entryPoint = 0;        // temporary, will update after finding main
+    hdr.entryPoint = 0;        // will be patched later
 
     hdr.constPoolOffset = sizeof(Header);
     hdr.constPoolSize   = 0;
@@ -39,7 +39,6 @@ void assembler::writeVMFile(
 
     hdr.classMetadataOffset = hdr.globalsOffset;
 
-    // Write header placeholder
     writer.write(hdr);
 
     // --- Write code ---
@@ -47,41 +46,67 @@ void assembler::writeVMFile(
 
     // --- Write class metadata ---
     size_t classMetaStart = writer.data().size();
-    writer.write((uint32_t)classes.size());
 
-    // Track main offset
+    const auto& classes = symtab.classes();
+    writer.write(static_cast<uint32_t>(classes.size()));
+
     uint32_t mainOffset = 0;
 
-    for (auto& cls : classes) {
-        writer.writeString(cls.name);
-        writer.write((int32_t)cls.superclass);
-        writer.write((uint32_t)0); // field count
-        writer.write((uint32_t)cls.methods.size());
+    for (const auto& pair : classes) {
+        const auto& ci = pair.second;
+        writer.writeString(ci.name);
 
-        for (auto& m : cls.methods) {
-            writer.writeString(m.name);
-            writer.write(m.codeOffset);
-
-            // If this is "main", record its offset
-            if (m.name == "main") {
-                mainOffset = m.codeOffset;
+        // Superclass index
+        int32_t superIndex = -1;
+        if (!ci.super_name.empty()) {
+            size_t idx = 0;
+            for (const auto& otherPair : classes) {
+                if (otherPair.second.name == ci.super_name) {
+                    superIndex = static_cast<int32_t>(idx);
+                    break;
+                }
+                ++idx;
             }
         }
+        writer.write(superIndex);
+
+        // Fields
+        writer.write(static_cast<uint32_t>(ci.fields.size()));
+        for (const auto& f : ci.fields) {
+            writer.writeString(f.name);
+            writer.write(f.pool_index);
+        }
+
+        // Methods
+        // Methods
+writer.write(static_cast<uint32_t>(ci.methods.size()));
+for (const auto& mkey : ci.methods) {
+    std::pair<bool, MethodInfo> result = symtab.get_method(mkey);
+    if (!result.first) continue;
+    const MethodInfo& mi = result.second;
+    writer.writeString(mi.name);
+    writer.write(mi.address);
+
+    if (mi.is_entry) mainOffset = mi.address;
+}
+
     }
 
+    // Patch header
     size_t classMetaEnd = writer.data().size();
     uint32_t classMetaSize = classMetaEnd - classMetaStart;
 
-    // --- Patch header ---
     Header* hdrPtr = (Header*)writer.data().data();
     hdrPtr->classMetadataOffset = classMetaStart;
     hdrPtr->classMetadataSize   = classMetaSize;
+    hdrPtr->entryPoint          = mainOffset;
 
-    // Set entry point to main
-    hdrPtr->entryPoint = mainOffset;
-
-    // --- Write file ---
+    // --- Write to file ---
     std::ofstream out(filename, std::ios::binary);
     out.write((char*)writer.data().data(), writer.data().size());
-}
 
+    std::cout << "[Emitter] VM file written: " << filename
+              << ", code size: " << code.size()
+              << ", classes: " << classes.size()
+              << ", main offset: " << mainOffset << std::endl;
+}
