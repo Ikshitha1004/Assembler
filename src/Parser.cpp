@@ -9,30 +9,7 @@
 #include <iostream>
 #include <limits>
 #include <iostream> 
-#include <utility> // for std::move
-static uint32_t instr_size_bytes(const Instruction& ins) {
-    switch (ins.op) {
-        // 0-operand ops: 1 byte opcode
-        case OpCode::IADD: case OpCode::ISUB: case OpCode::IMUL:
-        case OpCode::IDIV: case OpCode::INEG:
-        case OpCode::POP:  case OpCode::DUP:
-        case OpCode::RET:
-        case OpCode::ICMP_EQ: case OpCode::ICMP_LT: case OpCode::ICMP_GT:
-            return 1;
-        // 1-operand ops: opcode + 4-byte operand = 5 bytes
-        case OpCode::PUSH:
-        case OpCode::LOAD: case OpCode::STORE:
-        case OpCode::JMP: case OpCode::JZ: case OpCode::JNZ: case OpCode::CALL:
-        case OpCode::NEW:
-        case OpCode::GETFIELD: case OpCode::PUTFIELD:
-        case OpCode::INVOKEVIRTUAL: case OpCode::INVOKESPECIAL:
-            return 5;
-
-        default:
-            return 1;
-    }
-}
-
+#include <utility> 
 Parser::Parser(const std::vector<Token>& t)
     : toks(t), idx(0) {}
 
@@ -573,7 +550,7 @@ void Parser::parse_line() {
         validate_instruction(ins);
 
         instrs.push_back(std::move(ins));
-        symtab.advance_lc(instr_size_bytes(instrs.back()));
+        symtab.advance_lc(instruction_size(instrs.back()));
 
         return;
     }
