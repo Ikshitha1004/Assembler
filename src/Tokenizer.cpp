@@ -36,13 +36,18 @@ std::vector<Token> Tokenizer::tokenize() {
     std::vector<Token> toks;
 
     static const std::unordered_set<std::string> MNEMONICS = {
-        "PUSH","POP","DUP",
-        "IADD","ISUB","IMUL","IDIV","INEG",
-        "LOAD","STORE",
-        "JMP","JZ","JNZ","CALL","RET",
-        "ICMP_EQ","ICMP_LT","ICMP_GT",
-        "NEW","GETFIELD","PUTFIELD","INVOKEVIRTUAL","INVOKESPECIAL"
-    };
+    "PUSH","POP","DUP","FPUSH","FPOP",
+    "IADD","ISUB","IMUL","IDIV","INEG",
+    "FADD","FSUB","FMUL","FDIV","FNEG",
+    "LOAD","STORE","LOAD_ARG",
+    "JMP","JZ","JNZ","CALL","RET",
+    "ICMP_EQ","ICMP_LT","ICMP_GT",
+    "ICMP_GEQ","ICMP_NEQ","ICMP_LEQ",
+    "FCMP_EQ","FCMP_LT","FCMP_GT",
+    "FCMP_GEQ","FCMP_NEQ","FCMP_LEQ",
+    "NEW","GETFIELD","PUTFIELD",
+    "INVOKEVIRTUAL","INVOKESPECIAL"
+};
 
     while (!eof()) {
         skip_space();
