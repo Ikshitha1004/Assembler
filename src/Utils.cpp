@@ -122,7 +122,6 @@ void print_symbol_table(const SymbolTable& symtab) {
                   << " @ " << m.address
                   << "  .limit stack " << m.stack_limit
                   << "  .limit locals " << m.locals_limit
-                  << (m.is_entry ? "  [entry]" : "")
                   << "\n";
     }
 

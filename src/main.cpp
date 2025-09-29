@@ -55,7 +55,6 @@ int main(int argc, char** argv) {
                   << " addr=" << kv.second.address
                   << " stack=" << kv.second.stack_limit
                   << " locals=" << kv.second.locals_limit
-                  << (kv.second.is_entry ? " [ENTRY]" : "")
                   << "\n";
     }
     for (auto &kv : symtab.classes()) {

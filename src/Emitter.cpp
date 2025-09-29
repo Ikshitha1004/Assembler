@@ -87,10 +87,16 @@ for (const auto& mkey : ci.methods) {
     writer.writeString(mi.name);
     writer.write(mi.address);
 
-    if (mi.is_entry) mainOffset = mi.address;
 }
 
     }
+    
+ std::pair<bool, MethodInfo> result = symtab.get_method("main");
+if (result.first)
+{
+    mainOffset = result.second.address;
+}
+
 
     // Patch header
     size_t classMetaEnd = writer.data().size();

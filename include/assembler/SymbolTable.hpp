@@ -37,12 +37,11 @@ struct MethodInfo {
     uint32_t    size;         // size of the method in bytes
     uint32_t    stack_limit;  // from .limit stack
     uint32_t    locals_limit; // from .limit locals
-    bool        is_entry;     // from .entry
      uint32_t    pool_index; 
 
 
     MethodInfo()
-        : address(0), stack_limit(0), locals_limit(0), is_entry(false) {}
+        : address(0), stack_limit(0), locals_limit(0) {}
 };
 
 struct ClassInfo {
@@ -130,7 +129,6 @@ public:
     // Set limits/entry on the active method
     bool set_method_stack_limit(uint32_t limit);
     bool set_method_locals_limit(uint32_t limit);
-    bool set_method_entry(bool is_entry);
 
     // Set starting address of active method (usually current base+LC when first instruction emitted)
     bool set_method_address(uint32_t address);
@@ -144,8 +142,7 @@ public:
                        const std::string& signature,
                        uint32_t address,
                        uint32_t stack_limit,
-                       uint32_t locals_limit,
-                       bool is_entry);
+                       uint32_t locals_limit);
 
     // Lookup by key (same format as produced by make_method_key)
     std::pair<bool, MethodInfo> get_method(const std::string& method_key) const;

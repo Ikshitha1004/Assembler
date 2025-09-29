@@ -135,7 +135,6 @@ bool SymbolTable::begin_method(const std::string& method_name,
     mi.size = 0;                     // <-- NEW: will be filled at end_method
     mi.stack_limit = 0;
     mi.locals_limit = 0;
-    mi.is_entry = false;
     methods_[key] = mi;
 
     if (!current_class_.empty()) {
@@ -177,14 +176,6 @@ bool SymbolTable::set_method_locals_limit(uint32_t limit) {
     return true;
 }
 
-bool SymbolTable::set_method_entry(bool is_entry) {
-    if (current_method_key_.empty()) return false;
-    auto it = methods_.find(current_method_key_);
-    if (it == methods_.end()) return false;
-    it->second.is_entry = is_entry;
-    return true;
-}
-
 bool SymbolTable::set_method_address(uint32_t address) {
     if (current_method_key_.empty()) return false;
     auto it = methods_.find(current_method_key_);
@@ -215,8 +206,8 @@ bool SymbolTable::define_method(const std::string& class_name,
                                 const std::string& signature,
                                 uint32_t address,
                                 uint32_t stack_limit,
-                                uint32_t locals_limit,
-                                bool is_entry) {
+                                uint32_t locals_limit
+                                ) {
     std::string key = make_method_key(class_name, method_name, signature);
     if (methods_.find(key) != methods_.end()) return false;
 
@@ -227,7 +218,6 @@ bool SymbolTable::define_method(const std::string& class_name,
     mi.size = 0; // will be fixed later if needed
     mi.stack_limit = stack_limit;
     mi.locals_limit = locals_limit;
-    mi.is_entry = is_entry;
 
     methods_[key] = mi;
 

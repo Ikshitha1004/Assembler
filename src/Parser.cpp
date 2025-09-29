@@ -10,28 +10,7 @@
 #include <limits>
 #include <iostream> 
 #include <utility> // for std::move
-static uint32_t instr_size_bytes(const Instruction& ins) {
-    switch (ins.op) {
-        // 0-operand ops: 1 byte opcode
-        case OpCode::IADD: case OpCode::ISUB: case OpCode::IMUL:
-        case OpCode::IDIV: case OpCode::INEG:
-        case OpCode::POP:  case OpCode::DUP:
-        case OpCode::RET:
-        case OpCode::ICMP_EQ: case OpCode::ICMP_LT: case OpCode::ICMP_GT:
-            return 1;
-        // 1-operand ops: opcode + 4-byte operand = 5 bytes
-        case OpCode::PUSH:
-        case OpCode::LOAD: case OpCode::STORE:
-        case OpCode::JMP: case OpCode::JZ: case OpCode::JNZ: case OpCode::CALL:
-        case OpCode::NEW:
-        case OpCode::GETFIELD: case OpCode::PUTFIELD:
-        case OpCode::INVOKEVIRTUAL: case OpCode::INVOKESPECIAL:
-            return 5;
 
-        default:
-            return 1;
-    }
-}
 
 Parser::Parser(const std::vector<Token>& t)
     : toks(t), idx(0) {}
@@ -133,9 +112,12 @@ void Parser::validate_instruction(const Instruction &ins) {
     };
 
     switch (ins.op) {
+        // ---- One operand required ----
         case OpCode::PUSH:
+        case OpCode::FPUSH:
         case OpCode::LOAD:
         case OpCode::STORE:
+        case OpCode::LOAD_ARG:
         case OpCode::JMP:
         case OpCode::JZ:
         case OpCode::JNZ:
@@ -149,22 +131,35 @@ void Parser::validate_instruction(const Instruction &ins) {
                 bad("Instruction requires exactly 1 operand");
             break;
 
-        case OpCode::POP:
-        case OpCode::DUP:
-        case OpCode::IADD: case OpCode::ISUB:
-        case OpCode::IMUL: case OpCode::IDIV: case OpCode::INEG:
+        // ---- Zero operand instructions ----
+        case OpCode::POP: case OpCode::DUP:
+        case OpCode::FPOP:
+        // Int arithmetic
+        case OpCode::IADD: case OpCode::ISUB: case OpCode::IMUL:
+        case OpCode::IDIV: case OpCode::INEG:
+        // Float arithmetic
+        case OpCode::FADD: case OpCode::FSUB: case OpCode::FMUL:
+        case OpCode::FDIV: case OpCode::FNEG:
+        // Int comparisons
         case OpCode::ICMP_EQ: case OpCode::ICMP_LT: case OpCode::ICMP_GT:
+        case OpCode::ICMP_GEQ: case OpCode::ICMP_NEQ: case OpCode::ICMP_LEQ:
+        // Float comparisons
+        case OpCode::FCMP_EQ: case OpCode::FCMP_LT: case OpCode::FCMP_GT:
+        case OpCode::FCMP_GEQ: case OpCode::FCMP_NEQ: case OpCode::FCMP_LEQ:
+        // Return
         case OpCode::RET:
             if (!ins.operands.empty())
                 bad("Instruction takes no operands");
             break;
 
+        // ---- Catch invalid mnemonics ----
         default:
             if (ins.op == OpCode::INVALID)
                 bad("Invalid mnemonic");
             break;
     }
 }
+
 
 void Parser::parse_directive() {
     std::string dir = cur().value; 
@@ -273,6 +268,7 @@ else if (dir == ".method") {
 
     // Use current_class_ if we are inside a class, else global method
     auto owner = symtab.get_current_class();  // expose current_class_ via getter
+    
 
     if (!symtab.begin_method(methodName, "")) {
         std::string fullKey = owner.empty()
@@ -281,6 +277,7 @@ else if (dir == ".method") {
         errlist.push_back("Duplicate method: " + fullKey);
         return;
     }
+    
 
     // --- Set method start address to current location counter ---
     symtab.set_method_address(symtab.lc());
@@ -310,11 +307,7 @@ else if (dir == ".method") {
         }
         advance();
     }
-    else if (dir == ".entry") {
-        if (!symtab.set_method_entry(true)) {
-            errlist.push_back("'.entry' outside of method at line " + std::to_string(line));
-        }
-    }
+   
     else if (dir == ".end") {
         // end method or class depending on context
         if (!symtab.end_method()) {
@@ -573,7 +566,7 @@ void Parser::parse_line() {
         validate_instruction(ins);
 
         instrs.push_back(std::move(ins));
-        symtab.advance_lc(instr_size_bytes(instrs.back()));
+        symtab.advance_lc(instruction_size(instrs.back()));
 
         return;
     }
