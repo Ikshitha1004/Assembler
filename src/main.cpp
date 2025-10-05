@@ -81,6 +81,14 @@ int main(int argc, char** argv) {
         }
         std::cout << e.str << "\n";
     }
+    auto relocation_table = symtab.generate_relocation_table();
+
+std::cout << "\n=== RELOCATION TABLE ===\n";
+for (auto &r : relocation_table) {
+    std::cout << "offset=" << r.offset
+              << ", symbol=" << r.symbol_name<< "\n";
+}
+
 
     // Build IR
     auto irrep = assembler::IRBuilder::build(instructions);

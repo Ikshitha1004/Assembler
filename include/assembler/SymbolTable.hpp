@@ -16,6 +16,8 @@ struct LabelInfo {
     uint32_t address;     // absolute byte address = base + LC at definition time
     int line;             
     int col;
+    Section section = Section::NONE; // which section label belongs to
+
 };
 
 struct ConstantInfo {
@@ -55,15 +57,20 @@ struct ClassInfo {
 };
 
 struct PendingRef {
-    // what to patch after pass 1
     std::size_t instr_index;    // which instruction in the IR
     std::size_t operand_index;  // which operand of that instruction
     std::string label;          // label text
     int line;
     int col;
-
-    // for debug: where in code the ref appears (byte LC when encountered)
     uint32_t from_code_offset;
+    Section section;
+    bool resolved=false;
+    std::string target_file;
+};
+struct RelocationEntry {
+    uint32_t offset;           // where to patch
+    std::string symbol_name;   // what label/variable
+    Section section;           // which section
 };
 
 // ---------- SymbolTable ----------
@@ -72,7 +79,8 @@ class SymbolTable {
 public:
     explicit SymbolTable(uint32_t base_addr = 0)
         : base_address_(base_addr), lc_bytes_(0),
-          current_class_(""), current_method_key_("") {}
+          current_class_(""), current_method_key_(""),current_section_(Section::NONE) {}
+    
 
     // ----- Base + LC management -----
     void set_base(uint32_t base) { base_address_ = base; }
@@ -98,7 +106,11 @@ public:
                              const std::string& label,
                              int line, int col);
 
-    const std::vector<PendingRef>& pending_refs() const { return pending_refs_; }
+std::vector<PendingRef>& pending_refs() { return pending_refs_; }
+const std::vector<PendingRef>& pending_refs() const { return pending_refs_; }
+
+std::vector<RelocationEntry> generate_relocation_table() const;
+
 
     // ----- Constants (.const) -----
     bool define_constant(const std::string& name, int32_t value); // false if duplicate
@@ -183,6 +195,7 @@ private:
     std::unordered_map<std::string, LabelInfo> labels_;
     std::vector<PendingRef> pending_refs_;
 
+
     std::unordered_map<std::string, ConstantInfo> constants_;
 
     // keys:
@@ -195,9 +208,7 @@ private:
     // active scopes
     std::string current_class_;
     std::string current_method_key_;
-
-    // active section tracking
-Section current_section_ = Section::NONE;
+    Section current_section_;
 
 // data symbols (for .data section)
 // name -> vector of values (since a label may refer to an array of constants)

@@ -16,6 +16,7 @@ bool SymbolTable::define_label(const std::string& name, int line, int col) {
     li.address = base_address_ + lc_bytes_; // absolute byte address at definition
     li.line = line;
     li.col  = col;
+    li.section=current_section_;
     labels_[name] = li;
     return true;
 }
@@ -37,6 +38,7 @@ void SymbolTable::add_label_reference(std::size_t instr_index,
     pr.line = line;
     pr.col  = col;
     pr.from_code_offset = lc_bytes_; // snapshot of LC when reference recorded (debug)
+    pr.section = current_section_;  // NEW
     pending_refs_.push_back(pr);
 }
 
@@ -261,4 +263,17 @@ std::string SymbolTable::make_method_key(const std::string& owner,
                                          const std::string& sig) {
     if (owner.empty()) return name;
     return owner + "." + name;
+}
+std::vector<RelocationEntry> SymbolTable::generate_relocation_table() const {
+    std::vector<RelocationEntry> relos;
+    for (const auto& ref : pending_refs_) {
+        if (!ref.resolved) {
+            relos.push_back({
+                ref.from_code_offset,
+                ref.label,
+                ref.section
+            });
+        }
+    }
+    return relos;
 }

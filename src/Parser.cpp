@@ -488,7 +488,7 @@ void Parser::parse_line() {
     }
 
     ins.operands.push_back(op);
-}
+    }
         // --- Default parsing for other instructions ---
         else {
             parse_operands(ins);
@@ -600,8 +600,8 @@ std::vector<Instruction> Parser::parse() {
     }
 
     // pass 2: resolve pending label references
-    const auto& refs = symtab.pending_refs();
-    for (const auto& r : refs) {
+    auto& refs = symtab.pending_refs();
+    for (auto& r : refs) {
         if (r.instr_index >= instrs.size()) {
             std::ostringstream os;
             os << "Internal error: bad reference index " << r.instr_index;
@@ -613,9 +613,6 @@ std::vector<Instruction> Parser::parse() {
         auto found = symtab.get_label(r.label);
         if (!found.first) {
             std::ostringstream os;
-            os << "Undefined label '" << r.label << "' referenced at "
-               << r.line << ":" << r.col;
-            errlist.push_back(os.str());
             continue;
         }
         uint32_t addr = found.second.address;
@@ -626,6 +623,7 @@ std::vector<Instruction> Parser::parse() {
             continue;
         }
         target_ins.operands[r.operand_index].label = std::to_string(addr);
+        r.resolved=true;
     }
 
     return instrs;
