@@ -2,7 +2,6 @@
 .method main
 .limit stack 3
 .limit locals 5
-PUSH 3
 STORE 3 ; Init d
 PUSH 2
 STORE 2 ; Init c
@@ -37,10 +36,7 @@ ICMP_EQ
 JNZ L0
 JMP L3
 L3:
-L0:
-PUSH 1
-STORE 0 ; Store to a
-JMP L2
+
 L1:
 PUSH 0
 STORE 0 ; Store to a

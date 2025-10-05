@@ -31,15 +31,16 @@ PUSH 10
 ICMP_LT
 JNZ L4
 JMP L5
+L5:
+PUSH 0
+STORE 0 ; Init i
+PUSH 3
 L4:
 LOAD 0  ; Load a
 PUSH 1
 IADD
 STORE 0 ; Store to a
 JMP L3
-L5:
-PUSH 0
-STORE 0 ; Init i
 L6:
 LOAD 0  ; Load i
 PUSH 10
