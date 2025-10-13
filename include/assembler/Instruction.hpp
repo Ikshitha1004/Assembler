@@ -1,5 +1,5 @@
-#ifndef ASSEMBLER_Instruction_hpp
-#define ASSEMBLER_Instruction_hpp
+#ifndef ASSEMBLER_INSTRUCTION_HPP
+#define ASSEMBLER_INSTRUCTION_HPP
 
 #include <string>
 #include <vector>
@@ -98,4 +98,4 @@ inline std::size_t encoded_size(const Instruction& ins) {
     }
 }
 
-#endif // ASSEMBLER_Instruction_hpp
+#endif // ASSEMBLER_INSTRUCTION_HPP

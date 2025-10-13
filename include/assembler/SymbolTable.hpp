@@ -2,8 +2,8 @@
 // SymbolTable.hpp -Developed by Sahiti
 // ============================================================================
 
-#ifndef ASSEMBLER_SymbolTable_hpp
-#define ASSEMBLER_SymbolTable_hpp
+#ifndef ASSEMBLER_SYMBOLTABLE_HPP
+#define ASSEMBLER_SYMBOLTABLE_HPP
 
 #include <cstdint>
 #include <string>
@@ -217,4 +217,4 @@ std::unordered_map<std::string, std::vector<int32_t>> data_symbols_;
 
 };
 
-#endif // ARM_ALL_ASSEMBLER_SYMBOLTABLE_HPP
+#endif // ASSEMBLER_SYMBOLTABLE_HPP

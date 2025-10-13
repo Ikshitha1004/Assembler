@@ -1,8 +1,8 @@
 /*----------------------------------------------------------------------------------------
     This module was written by Dakshayini(CS21B016)
 -------------------------------------------------------------------------------------------*/
-#ifndef ASSEMBLER_IR_hpp
-#define ASSEMBLER_IR_hpp
+#ifndef ASSEMBLER_IR_HPP
+#define ASSEMBLER_IR_HPP
 
 #include <cstdint>
 #include <vector>
@@ -31,4 +31,4 @@ public:
 
 } // namespace assembler
 
-#endif // ARM_ALL_ASSEMBLER_IR_hpp
+#endif // ARM_ALL_ASSEMBLER_IR_HPP

@@ -1,5 +1,5 @@
-#ifndef ASSEMBLER_Emitter_hpp
-#define ASSEMBLER_Emitter_hpp
+#ifndef ASSEMBLER_EMITTER_HPP
+#define ASSEMBLER_EMITTER_HPP
 
 #include <cstdint>
 #include <vector>
@@ -47,4 +47,4 @@ void writeVMFile(
 
 } // namespace assembler
 
-#endif // ASSEMBLER_Emitter_hpp
+#endif // ASSEMBLER_EMITTER_HPP

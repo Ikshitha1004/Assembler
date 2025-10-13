@@ -27,7 +27,8 @@ void write_string_with_len(std::ofstream &out, const std::string &s) {
 void assembler::writeObjectFile(
     const std::string& filename,
     const std::vector<uint8_t>& code,
-    const SymbolTable& symtab
+    const SymbolTable& symtab,
+    const std::vector<RelocationEntry>& relos
 ) {
     std::ofstream out(filename, std::ios::binary);
     if (!out) throw std::runtime_error("Cannot open object file for write: " + filename);
@@ -87,7 +88,6 @@ void assembler::writeObjectFile(
 
     // --- write relocation table ---
     size_t relocOffset = out.tellp();
-    auto relos = symtab.generate_relocation_table();
     uint32_t relocCount = static_cast<uint32_t>(relos.size());
     write_u32(out, relocCount);
     for (const auto& r : relos) {

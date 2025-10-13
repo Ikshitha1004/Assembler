@@ -1,8 +1,8 @@
 // ============================================================================
 // Developed By: Sahiti Vempalli
 // ============================================================================
-#ifndef ASSEMBLER_Token_hpp
-#define ASSEMBLER_Token_hpp
+#ifndef ASSEMBLER_TOKEN_HPP
+#define ASSEMBLER_TOKEN_HPP
 
 
 #include <string>
@@ -40,4 +40,4 @@ int col;
 };
 
 
-#endif // ASSEMBLER_Token_hpp
+#endif // ASSEMBLER_TOKEN_HPP

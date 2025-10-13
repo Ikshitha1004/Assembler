@@ -1,8 +1,8 @@
 // ============================================================================
 // Developed By: Sahiti Vempalli
 // ============================================================================
-#ifndef ASSEMBLER_Tokenizer_hpp
-#define ASSEMBLER_Tokenizer_hpp
+#ifndef ASSEMBLER_TOKENIZER_HPP
+#define ASSEMBLER_TOKENIZER_HPP
 
 #include "Token.hpp"
 #include <vector>
@@ -25,4 +25,4 @@ private:
     Token make(TokenType t, const std::string &v, int l, int c) const;
 };
 
-#endif // ASSEMBLER_Tokenizer_hpp
+#endif // ASSEMBLER_TOKENIZER_HPP

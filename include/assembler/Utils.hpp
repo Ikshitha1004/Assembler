@@ -1,8 +1,8 @@
 // ============================================================================
 // Developed By: Sahiti Vempalli
 // ============================================================================
-#ifndef ASSEMBLER_Utils_hpp
-#define ASSEMBLER_Utils_hpp
+#ifndef ASSEMBLER_UTILS_HPP
+#define ASSEMBLER_UTILS_HPP
 
 #include <string>
 #include <vector>
@@ -53,4 +53,4 @@ inline std::size_t instruction_size(const Instruction& inst) {
 }
 
 
-#endif // ARM_ALL_ASSEMBLER_UTILS_HPP
+#endif // ASSEMBLER_UTILS_HPP

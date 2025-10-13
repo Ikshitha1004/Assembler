@@ -2,8 +2,8 @@
 // ConstantPool.hpp - Developed by Sahiti(CS22B056)
 // ============================================================================
 
-#ifndef ASSEMBLER_ConstantPool_hpp
-#define ASSEMBLER_ConstantPool_hpp
+#ifndef ASSEMBLER_CONSTANTPOOL_HPP
+#define ASSEMBLER_CONSTANTPOOL_HPP
 
 #include <string>
 #include <unordered_map>
@@ -54,4 +54,4 @@ private:
 
 } // namespace assembler
 
-#endif // ASSEMBLER_ConstantPool_hpp
+#endif // ASSEMBLER_CONSTANTPOOL_HPP

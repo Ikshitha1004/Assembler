@@ -2,6 +2,7 @@
 #include "assembler/Tokenizer.hpp"
 #include "assembler/Parser.hpp"
 #include "assembler/EmitterObj.hpp"
+#include "assembler/Utils.hpp"
 #include <fstream>
 #include <iostream>
 #include <iomanip>
@@ -9,7 +10,7 @@
 
 // --- Assemble method ---
 bool Assembler::assemble(const std::string& inputFile, const std::string& outputObjFile) {
-    // 1️⃣ Read source
+    //  Read source
     std::ifstream in(inputFile);
     if (!in.is_open()) {
         std::cerr << "[Assembler] Cannot open " << inputFile << std::endl;
@@ -18,15 +19,43 @@ bool Assembler::assemble(const std::string& inputFile, const std::string& output
     std::string src((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
     in.close();
 
-    // 2️⃣ Tokenize
+    //  Tokenize
     Tokenizer tokenizer(src);
     auto tokens = tokenizer.tokenize();
     std::cout << "[Tokenizer] " << tokens.size() << " tokens read from " << inputFile << "\n";
+    std::cout << "=== TOKENS ===\n";
+    print_tokens(tokens);
 
-    // 3️⃣ Parse
+    //  Parse
     Parser parser(tokens);
     auto instructions = parser.parse();
+    std::cout << "\n=== INSTRUCTIONS ===\n";
+    print_instructions(instructions);
+    std::cout << "\n=== SYMBOL TABLE ===\n";
     const auto& symtab = parser.symbols();
+    for (auto &kv : symtab.labels()) {
+        std::cout << "Label " << kv.first
+                  << " -> addr=" << kv.second.address
+                  << " (defined at line " << kv.second.line
+                  << ", col " << kv.second.col << ")\n";
+    }
+    for (auto &kv : symtab.constants()) {
+        std::cout << "Const " << kv.first
+                  << " = " << kv.second.value << "\n";
+    }
+    for (auto &kv : symtab.methods()) {
+        std::cout << "Method " << kv.first
+                  << " addr=" << kv.second.address
+                  << " stack=" << kv.second.stack_limit
+                  << " locals=" << kv.second.locals_limit
+                  << "\n";
+    }
+    for (auto &kv : symtab.classes()) {
+        std::cout << "Class " << kv.first
+                  << " super=" << kv.second.super_name << "\n";
+    }
+
+
 
     if (!parser.errors().empty()) {
         std::cerr << "[Parser] Errors in " << inputFile << ":\n";
@@ -35,13 +64,33 @@ bool Assembler::assemble(const std::string& inputFile, const std::string& output
         return false;
     }
 
-    // 4️⃣ Encode instructions → bytecode
+    // Encode instructions → bytecode
    // std::vector<uint8_t> code;
     // for (const auto& ins : instructions) {
     //     //auto encoded = encode_instruction(ins);
     //     code.insert(code.end(), encoded.begin(), encoded.end());
     // }
       // Build IR
+    //     // === Constant Pool Debug Print ===
+    const auto &cp = parser.get_constpool().entries();
+    std::cout << "\n=== CONSTANT POOL ===\n";
+    for (auto &e : cp) {
+        std::cout << "#" << e.index << " ";
+        switch (e.tag) {
+            case assembler::ConstTag::INT:      std::cout << "INT "; break;
+            case assembler::ConstTag::FLOAT:    std::cout << "FLOAT "; break;
+            case assembler::ConstTag::STRING:   std::cout << "STRING "; break;
+        }
+        std::cout << e.str << "\n";
+    }
+    auto relocation_table = symtab.generate_relocation_table();
+
+    std::cout << "\n=== RELOCATION TABLE ===\n";
+    for (auto &r : relocation_table) {
+        std::cout << "offset=" << r.offset
+                << ", symbol=" << r.symbol_name<< "\n";
+    }
+
     auto irrep = assembler::IRBuilder::build(instructions);
 
     std::cout << "\n=== IR WORDS ===\n";
@@ -72,20 +121,17 @@ bool Assembler::assemble(const std::string& inputFile, const std::string& output
 }
 }
 
-    // 5️⃣ Emit constant pool bytes
+    // Emit constant pool bytes
     std::vector<uint8_t> pool_bytes;
     parser.get_constpool().emit(pool_bytes);
 
-    // 6️⃣ Combine constant pool + code
+    // Combine constant pool + code
     std::vector<uint8_t> final_bytes;
     final_bytes.insert(final_bytes.end(), pool_bytes.begin(), pool_bytes.end());
     final_bytes.insert(final_bytes.end(), code.begin(), code.end());
-
-    // 7️⃣ Generate relocation entries
-    auto relocs = symtab.generate_relocation_table();
-//add ir
-    // 8️⃣ Write .vmobj file
-    assembler::writeObjectFile(outputObjFile, final_bytes, symtab);
+    
+    //  Write .vmobj file
+    assembler::writeObjectFile(outputObjFile, final_bytes, symtab,relocation_table);
 
     std::cout << "[Assembler] " << inputFile << " → " << outputObjFile << " (" 
               << final_bytes.size() << " bytes)" << std::endl;

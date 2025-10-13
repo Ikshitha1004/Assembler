@@ -10,7 +10,8 @@ namespace assembler {
 
 void writeObjectFile(const std::string& filename,
                      const std::vector<uint8_t>& code,
-                     const SymbolTable& symtab);
+                     const SymbolTable& symtab,
+                    const std::vector<RelocationEntry>& relos);
 
 } // namespace assembler
 

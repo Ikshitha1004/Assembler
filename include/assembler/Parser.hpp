@@ -2,8 +2,8 @@
     This module was written by Ikshitha (CS22B027)
 -------------------------------------------------------------------------------------------*/
 
-#ifndef ASSEMBLER_Parser_hpp
-#define ASSEMBLER_Parser_hpp
+#ifndef ASSEMBLER_PARSER_HPP
+#define ASSEMBLER_PARSER_HPP
 
 #include "assembler/Token.hpp"
 #include "assembler/IR.hpp"
@@ -44,4 +44,4 @@ private:
     void validate_instruction(const Instruction &ins);
 };
 
-#endif // ASSEMBLER_Parser_hpp
+#endif // ASSEMBLER_PARSER_HPP

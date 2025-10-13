@@ -1,5 +1,5 @@
-#ifndef LINKER_HPP
-#define LINKER_HPP
+#ifndef ASSEMBLER_LINKER_HPP
+#define ASSEMBLER_LINKER_HPP
 
 #include <string>
 #include <vector>
@@ -38,4 +38,4 @@ private:
     void writeFinalVM(const std::string& outPath, const std::vector<uint8_t>& finalCode, uint32_t entryPoint);
 };
 
-#endif // LINKER_HPP
+#endif // ASSEMBLER_LINKER_HPP
