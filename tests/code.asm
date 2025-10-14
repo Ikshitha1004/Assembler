@@ -5,7 +5,6 @@
 L0:
 PUSH 1
 STORE 0 ; Store to a
-JMP L2
 LOAD 0  ; Load a
 LOAD 1  ; Load b
 IADD

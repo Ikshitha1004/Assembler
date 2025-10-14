@@ -20,6 +20,7 @@ static bool parse_int32(const std::string &s, int32_t &out) {
     return true;
 }
 
+
 IRBuilder::Report IRBuilder::build(const std::vector<Instruction>& program) {
     Report rep;
     rep.words.reserve(program.size());
@@ -42,34 +43,28 @@ IRBuilder::Report IRBuilder::build(const std::vector<Instruction>& program) {
                 case Operand::Kind::Label: {
                     int32_t val = 0;
                     if (!parse_int32(op.label, val)) {
-                        std::ostringstream os;
-                        os << "IR build error: non-numeric label operand '"
-                           << op.label << "' at line " << ins.src_line
-                           << ", col " << ins.src_col
-                           << " (instr " << i << ", operand " << oi << ")";
-                        rep.errors.push_back(os.str());
-                    } else {
-                        w.imm.push_back(val);
+                        // Label not numeric → placeholder 0
+                        val = 0;
                     }
+                    w.imm.push_back(val);
                     break;
                 }
 
-                case Operand::Kind::ConstPoolIndex: { //by Sahiti
-                    // [CONSTPOOL] Store pool index as operand
+                case Operand::Kind::ConstPoolIndex:
                     w.imm.push_back(op.pool_index);
                     break;
-                }
 
+                case Operand::Kind::MethodRef:
                 case Operand::Kind::FieldRef:
                 case Operand::Kind::Register:
-                case Operand::Kind::MethodRef: {
-                    std::ostringstream os;
-                    os << "IR build error: unsupported operand kind at line "
-                       << ins.src_line << ", col " << ins.src_col
-                       << " (instr " << i << ", operand " << oi << ")";
-                    rep.errors.push_back(os.str());
+                    rep.errors.push_back(
+                        "IR build error: unsupported operand kind at line " +
+                        std::to_string(ins.src_line) + ", col " +
+                        std::to_string(ins.src_col) +
+                        " (instr " + std::to_string(i) +
+                        ", operand " + std::to_string(oi) + ")"
+                    );
                     break;
-                }
             }
         }
 

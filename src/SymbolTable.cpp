@@ -27,10 +27,10 @@ std::pair<bool, LabelInfo> SymbolTable::get_label(const std::string& name) const
     return {true, it->second};
 }
 
-void SymbolTable::add_label_reference(std::size_t instr_index,
+void SymbolTable::add_reference(std::size_t instr_index,
                                       std::size_t operand_index,
                                       const std::string& label,
-                                      int line, int col) {
+                                      int line, int col,bool is_method) {
     PendingRef pr;
     pr.instr_index = instr_index;
     pr.operand_index = operand_index;
@@ -39,6 +39,7 @@ void SymbolTable::add_label_reference(std::size_t instr_index,
     pr.col  = col;
     pr.from_code_offset = lc_bytes_; // snapshot of LC when reference recorded (debug)
     pr.section = current_section_;  // NEW
+    pr.is_method_ref=is_method;
     pending_refs_.push_back(pr);
 }
 

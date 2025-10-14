@@ -11,7 +11,8 @@
 #include <cstdint>
 #include <cstring>
 
-#include "assembler/Instruction.hpp" // uses OpCode, encoded_size etc
+#include "assembler/Instruction.hpp" 
+#include "assembler/Utils.hpp"
 
 using namespace std;
 
@@ -36,63 +37,9 @@ static int32_t read_i32(const vector<uint8_t>& buf, size_t off) {
 
 // Determine operand byte-size for an opcode (based on your assembler/VM)
 // returns number of bytes of operand (0, 2, or 4)
-static size_t operand_size_for_opcode(uint8_t opc) {
-    OpCode oc = static_cast<OpCode>(opc);
-    switch (oc) {
-        case OpCode::JMP:
-        case OpCode::JZ:
-        case OpCode::JNZ:
-            return 2;
-        case OpCode::PUSH:
-        case OpCode::LOAD:
-        case OpCode::STORE:
-        case OpCode::CALL:
-        case OpCode::NEW:
-        case OpCode::GETFIELD:
-        case OpCode::PUTFIELD:
-        case OpCode::INVOKEVIRTUAL:
-        case OpCode::INVOKESPECIAL:
-        case OpCode::FPUSH:
-            return 4;
-        default:
-            return 0;
-    }
-}
 
-// Friendly name map (fallback if assembler's opcode_to_string not accessible)
-static string opcode_to_name(uint8_t opc) {
-    OpCode oc = static_cast<OpCode>(opc);
-    switch (oc) {
-        case OpCode::IADD: return "IADD";
-        case OpCode::ISUB: return "ISUB";
-        case OpCode::IMUL: return "IMUL";
-        case OpCode::IDIV: return "IDIV";
-        case OpCode::INEG: return "INEG";
-        case OpCode::PUSH: return "PUSH";
-        case OpCode::POP: return "POP";
-        case OpCode::DUP: return "DUP";
-        case OpCode::LOAD: return "LOAD";
-        case OpCode::STORE: return "STORE";
-        case OpCode::JMP: return "JMP";
-        case OpCode::JZ: return "JZ";
-        case OpCode::JNZ: return "JNZ";
-        case OpCode::CALL: return "CALL";
-        case OpCode::RET: return "RET";
-        case OpCode::ICMP_EQ: return "ICMP_EQ";
-        case OpCode::ICMP_LT: return "ICMP_LT";
-        case OpCode::ICMP_GT: return "ICMP_GT";
-        case OpCode::NEW: return "NEW";
-        case OpCode::GETFIELD: return "GETFIELD";
-        case OpCode::PUTFIELD: return "PUTFIELD";
-        case OpCode::INVOKEVIRTUAL: return "INVOKEVIRTUAL";
-        case OpCode::INVOKESPECIAL: return "INVOKESPECIAL";
-        default: {
-            std::ostringstream os;
-            os << "OP_0x" << hex << setw(2) << setfill('0') << (int)opc;
-            return os.str();
-        }
-    }
-}
+
+
 
 // For .vmobj format we've been using these constants:
 static constexpr uint32_t OBJ_MAGIC = 0x004F4D56; // 'VMO\0' little-endian
@@ -305,74 +252,58 @@ int main(int argc, char** argv) {
 
     // Build reverse map for labels & methods if obj: name -> addr already available
     // Disassemble: iterate through code bytes
-    cout << "\n=== DISASSEMBLY ===\n";
+        cout << "\n=== DISASSEMBLY ===\n";
     size_t ip = 0;
+    cout << std::dec; // default to decimal for readability
+
     while (ip < code.size()) {
         uint8_t opc = read_u8(code, ip);
-        size_t opndSize = operand_size_for_opcode(opc);
-        size_t instrSize = 1 + opndSize;
-        // Safety: if instr spills beyond code, break
+        // size_t opndSize = operand_size_for_opcode(opc);
+        OpCode oc = static_cast<OpCode>(opc);
+        size_t instrSize = instruction_size(oc);
+
         if (ip + instrSize > code.size()) {
             cout << hex << setw(4) << setfill('0') << ip << ": ";
-            cout << opcode_to_name(opc) << " [truncated]\n";
+            cout << opcode_to_string(oc) << " [truncated]\n";
             break;
         }
 
-        // Print address and raw bytes
+        // --- Print raw bytes ---
         cout << hex << setw(4) << setfill('0') << ip << ": ";
-        // print raw bytes for the instruction
-        cout << setw(2) << (int)opc;
-        for (size_t b = 0; b < opndSize; ++b) {
-            cout << " " << setw(2) << (int)code[ip+1+b];
+        for (size_t b = 0; b < instrSize; ++b) {
+            cout << setw(2) << setfill('0') << (int)code[ip + b] << " ";
         }
-        cout << "    ";
 
-        // mnemonic
-        string mnem = opcode_to_name(opc);
-        cout << left << setw(15) << mnem;
+        // --- Print mnemonic ---
+        string mnem = opcode_to_string(oc);
+        cout << "   " << left << setw(4) << mnem << right;
 
-        // operand decoding and annotation
-        if (opndSize == 0) {
-            // none
-        } else if (opndSize == 2) {
-            uint16_t val = read_u16(code, ip+1);
-            cout << " ";
-            cout << dec << (int)val;
-            // annotate relocation symbol if any
-            auto it = reloc_map.find(ip+1);
-            if (it != reloc_map.end()) {
-                cout << "    ; RELOC -> " << it->second.symbol;
-            }
-            // If any label exists at that address (from labels map), print it
-            for (const auto &kv : labels) {
-                if (kv.second == val) {
-                    cout << "    ; label: " << kv.first;
-                    break;
-                }
-            }
-        } else if (opndSize == 4) {
-            int32_t ival = read_i32(code, ip+1);
-            cout << " ";
-            cout << ival;
-            auto it = reloc_map.find(ip+1);
-            if (it != reloc_map.end()) {
-                cout << "    ; RELOC -> " << it->second.symbol;
-            }
-            // if it's a method/address, check methods map (for obj)
-            for (const auto &kv : methods) {
-                if (kv.second == static_cast<uint32_t>(ival)) {
-                    cout << "    ; method: " << kv.first;
-                    break;
-                }
-            }
-        } else {
-            // unknown operand size (shouldn't happen)
+        // --- Decode operands ---
+        if (instrSize == 3) {
+            uint16_t val = read_u16(code, ip + 1);
+            cout << " " << dec << val;
+
+            auto it = reloc_map.find(ip + 1);
+            if (it != reloc_map.end()) cout << "    ; RELOC -> " << it->second.symbol;
+
+            for (const auto &kv : labels)
+                if (kv.second == val) { cout << "    ; label: " << kv.first; break; }
+
+        } else if (instrSize == 5) {
+            int32_t ival = read_i32(code, ip + 1);
+            cout << " " << dec << ival;
+
+            auto it = reloc_map.find(ip + 1);
+            if (it != reloc_map.end()) cout << "    ; RELOC -> " << it->second.symbol;
+
+            for (const auto &kv : methods)
+                if (kv.second == static_cast<uint32_t>(ival)) { cout << "    ; method: " << kv.first; break; }
         }
 
         cout << "\n";
-
         ip += instrSize;
     }
+
 
     // Also dump relocation table (if present)
     if (!relocs.empty()) {

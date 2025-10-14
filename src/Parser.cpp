@@ -502,7 +502,7 @@ void Parser::parse_line() {
                     {
                         const Operand& op = ins.operands[0];
                         if (op.kind == Operand::Kind::Label && !is_number_literal(op.label)) {
-                            symtab.add_label_reference(instrs.size(), 0, op.label,
+                            symtab.add_reference(instrs.size(), 0, op.label,
                                                       ins.src_line, ins.src_col);
                         }
                         break;
@@ -542,17 +542,22 @@ void Parser::parse_line() {
                         bool found = p.first;
                         std::cout<<"Method found: " << found << "\n";
                         const MethodInfo& methodInfo = p.second;
+                        Operand newOp;
+                        newOp.kind = Operand::Kind::Immediate;
                         if (found) {
                             // Replace label operand with an immediate numeric one
-                            Operand newOp;
-                            newOp.kind = Operand::Kind::Immediate;
-                            //pu tin immediate
+                            //put in immediate
                             newOp.imm = methodInfo.address;
                             ins.operands[0] = newOp;
                         } else {
+                            newOp.imm = 0;
+                            ins.operands[0] = newOp;
+                            symtab.add_reference(instrs.size(), 0, op.label,
+                               ins.src_line, ins.src_col,
+                               true);
                             
-                            std::cerr << "Error: undefined method " << op.label
-                                    << " at line " << ins.src_line << "\n";
+                            // std::cerr << "Error: undefined method " << op.label
+                            //         << " at line " << ins.src_line << "\n";
                         }
                     }
                     break;
@@ -566,7 +571,7 @@ void Parser::parse_line() {
         validate_instruction(ins);
 
         instrs.push_back(std::move(ins));
-        symtab.advance_lc(instruction_size(instrs.back()));
+        symtab.advance_lc(instruction_size(instrs.back().op));
 
         return;
     }
@@ -633,6 +638,8 @@ std::vector<Instruction> Parser::parse() {
 const std::vector<std::string>& Parser::errors() const {
     return errlist;
 }
-//TODO :need anorher pass of ins before writing to vm fir resolving and putting only operandsthat areneeded (oprand is a struct)
 //TODO : access modifiers and polymorphism not handled in the gien output
 //TODO : data seg needs to be handled.
+//TODO :InvokeSpecial and virtual and New to be handled correctly
+//TODO : Array handling?
+//TODO: parser -relocation parts for jmp,jnz,call

@@ -17,8 +17,8 @@ void print_tokens(const std::vector<Token> &toks);
 void print_instructions(const std::vector<Instruction>& code);
 void print_symbol_table(const SymbolTable& symtab);
 
-inline std::size_t instruction_size(const Instruction& inst) {
-    switch (inst.op) {
+inline std::size_t instruction_size(const OpCode op) {
+    switch (op) {
         // --- No operand (1B) ---
         case OpCode::IADD: case OpCode::ISUB: case OpCode::IMUL:
         case OpCode::IDIV: case OpCode::INEG:

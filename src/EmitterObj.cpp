@@ -5,16 +5,11 @@
 
 using namespace assembler;
 
-// Simple obj-file header:
-// magic(4) 'VMO\0'  | version(u32) | codeSize(u32) | symtabOffset(u32) | symtabSize(u32) | relocOffset(u32) | relocCount(u32)
-static constexpr uint32_t OBJ_MAGIC = 0x004F4D56; // 'VMO\0' little-endian (V M O 0)
+// Simple obj-file header
+static constexpr uint32_t OBJ_MAGIC = 0x004F4D56; // 'VMO\0' little-endian
 static constexpr uint32_t OBJ_VERSION = 1;
 
 void write_u32(std::ofstream &out, uint32_t v) {
-    out.write(reinterpret_cast<const char*>(&v), sizeof(v));
-}
-
-void write_u16(std::ofstream &out, uint16_t v) {
     out.write(reinterpret_cast<const char*>(&v), sizeof(v));
 }
 
@@ -31,29 +26,27 @@ void assembler::writeObjectFile(
     const std::vector<RelocationEntry>& relos
 ) {
     std::ofstream out(filename, std::ios::binary);
-    if (!out) throw std::runtime_error("Cannot open object file for write: " + filename);
+    if (!out) throw std::runtime_error("Cannot open object file: " + filename);
 
-    // header placeholder
+    // --- header placeholder ---
     write_u32(out, OBJ_MAGIC);
     write_u32(out, OBJ_VERSION);
     write_u32(out, static_cast<uint32_t>(code.size())); // codeSize
-    write_u32(out, 0); // symtabOffset (patch)
-    write_u32(out, 0); // symtabSize (patch)
-    write_u32(out, 0); // relocOffset (patch)
-    write_u32(out, 0); // relocCount (patch)
+    write_u32(out, 0); // symtabOffset (to patch)
+    write_u32(out, 0); // symtabSize (to patch)
+    write_u32(out, 0); // relocOffset (to patch)
+    write_u32(out, 0); // relocCount (to patch)
 
-    // --- write code ---
+    // --- write contiguous code ---
     size_t codeStart = out.tellp();
     if (!code.empty()) out.write(reinterpret_cast<const char*>(code.data()), code.size());
     size_t codeEnd = out.tellp();
 
-    // --- write symbol table as simple records ---
+    // --- write symbol table ---
     size_t symtabOffset = out.tellp();
 
-    // labels
     const auto& labels = symtab.labels();
-    uint32_t labelCount = static_cast<uint32_t>(labels.size());
-    write_u32(out, labelCount);
+    write_u32(out, static_cast<uint32_t>(labels.size()));
     for (const auto& kv : labels) {
         const std::string& name = kv.first;
         const LabelInfo& li = kv.second;
@@ -61,20 +54,15 @@ void assembler::writeObjectFile(
         write_u32(out, li.address);
         write_u32(out, static_cast<uint32_t>(li.line));
         write_u32(out, static_cast<uint32_t>(li.col));
-        uint32_t sectionByte = static_cast<uint32_t>(li.address == 0 ? 0 : static_cast<uint32_t>(li.address)); // not used; we store section below
-        // store section as uint32 (enum)
-        write_u32(out, static_cast<uint32_t>(li.col)); // placeholder (not ideal) -> we will retrieve section differently
-        // Better: if you added section inside LabelInfo, write it; else skip.
+        write_u32(out, static_cast<uint32_t>(li.section));
     }
 
-    // methods
     const auto& methods = symtab.methods();
-    uint32_t methodCount = static_cast<uint32_t>(methods.size());
-    write_u32(out, methodCount);
+    write_u32(out, static_cast<uint32_t>(methods.size()));
     for (const auto& kv : methods) {
         const std::string& key = kv.first;
         const MethodInfo& mi = kv.second;
-        write_string_with_len(out, key);         // method key (owner.method)
+        write_string_with_len(out, key);         // full name
         write_string_with_len(out, mi.name);     // short name
         write_string_with_len(out, mi.signature);
         write_u32(out, mi.address);
@@ -88,25 +76,28 @@ void assembler::writeObjectFile(
 
     // --- write relocation table ---
     size_t relocOffset = out.tellp();
-    uint32_t relocCount = static_cast<uint32_t>(relos.size());
-    write_u32(out, relocCount);
+    write_u32(out, static_cast<uint32_t>(relos.size()));
     for (const auto& r : relos) {
-        write_u32(out, r.offset); // offset in code
+        write_u32(out, r.offset);
         write_string_with_len(out, r.symbol_name);
         write_u32(out, static_cast<uint32_t>(r.section));
     }
     size_t relocEnd = out.tellp();
+    uint32_t relocCount = static_cast<uint32_t>(relos.size());
 
-    // patch header: symtabOffset, symtabSize, relocOffset, relocCount
-    out.seekp(8); // after magic(4) + version(4)
-    write_u32(out, static_cast<uint32_t>(code.size())); // codeSize (re-write)
+    // --- patch header ---
+    out.seekp(8); // after magic + version
+    write_u32(out, static_cast<uint32_t>(code.size())); // codeSize
     write_u32(out, static_cast<uint32_t>(symtabOffset));
     write_u32(out, symtabSize);
     write_u32(out, static_cast<uint32_t>(relocOffset));
     write_u32(out, relocCount);
 
     out.close();
-    std::cout << "[EmitterObj] Wrote .vmobj: " << filename << " code=" << code.size()
-              << " labels=" << labels.size() << " methods=" << methods.size()
+
+    std::cout << "[EmitterObj] Wrote .vmobj: " << filename
+              << " code=" << code.size()
+              << " labels=" << labels.size()
+              << " methods=" << methods.size()
               << " relocs=" << relocCount << "\n";
 }

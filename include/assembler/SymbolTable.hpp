@@ -67,6 +67,7 @@ struct PendingRef {
     Section section;
     bool resolved=false;
     std::string target_file;
+    bool is_method_ref=false;
 };
 struct RelocationEntry {
     uint32_t offset;           // where to patch
@@ -102,10 +103,10 @@ public:
     std::pair<bool, LabelInfo> get_label(const std::string& name) const;
 
     // ----- Pending control-flow references -----
-    void add_label_reference(std::size_t instr_index,
+    void add_reference(std::size_t instr_index,
                              std::size_t operand_index,
                              const std::string& label,
-                             int line, int col);
+                             int line, int col,bool is_method=false);
 
 std::vector<PendingRef>& pending_refs() { return pending_refs_; }
 const std::vector<PendingRef>& pending_refs() const { return pending_refs_; }
