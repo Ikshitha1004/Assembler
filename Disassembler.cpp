@@ -270,13 +270,14 @@ int main(int argc, char** argv) {
 
         // --- Print raw bytes ---
         cout << hex << setw(4) << setfill('0') << ip << ": ";
+        //cout<<"instrStr"<<instrSize<<endl;
         for (size_t b = 0; b < instrSize; ++b) {
             cout << setw(2) << setfill('0') << (int)code[ip + b] << " ";
         }
 
         // --- Print mnemonic ---
         string mnem = opcode_to_string(oc);
-        cout << "   " << left << setw(4) << mnem << right;
+        cout << "   " << left << setw(2) << mnem << right;
 
         // --- Decode operands ---
         if (instrSize == 3) {

@@ -536,8 +536,11 @@ void Parser::parse_line() {
        
 
                     const Operand& op = ins.operands[0];
+
                     if (op.kind == Operand::Kind::Label && !is_number_literal(op.label)) {
+                         
                         std::cout<<"Method call to label: " << op.label << " at line " << ins.src_line << "\n";
+                       std:: string label = op.label;
                         auto p= symtab.get_method(op.label);
                         bool found = p.first;
                         std::cout<<"Method found: " << found << "\n";
@@ -550,11 +553,13 @@ void Parser::parse_line() {
                             newOp.imm = methodInfo.address;
                             ins.operands[0] = newOp;
                         } else {
-                            newOp.imm = 0;
-                            ins.operands[0] = newOp;
-                            symtab.add_reference(instrs.size(), 0, op.label,
+                            symtab.add_reference(instrs.size(), 0, label,
                                ins.src_line, ins.src_col,
                                true);
+                            newOp.imm = 0;
+                            ins.operands[0] = newOp;
+                            //std::cout<<"Adding pending reference for method: " << op.label << "\n";
+                           
                             
                             // std::cerr << "Error: undefined method " << op.label
                             //         << " at line " << ins.src_line << "\n";
@@ -642,4 +647,4 @@ const std::vector<std::string>& Parser::errors() const {
 //TODO : data seg needs to be handled.
 //TODO :InvokeSpecial and virtual and New to be handled correctly
 //TODO : Array handling?
-//TODO: parser -relocation parts for jmp,jnz,call
+//TODO: parser -relocation parts for jmp,jnz,call ....absolute addr handling
