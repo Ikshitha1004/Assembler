@@ -1,22 +1,22 @@
 // ============================================================================
 // Developed By: Sahiti Vempalli
 // ============================================================================
+
 #ifndef ASSEMBLER_TOKEN_HPP
 #define ASSEMBLER_TOKEN_HPP
 
-
 #include <string>
 
-
 enum class TokenType {
-MNEMONIC,
-NUMBER,
-IDENT,
-LABEL_DEF,
-COMMENT,
-COMMA,
-DIRECTIVE,
-END_OF_FILE,
+    MNEMONIC,     
+    NUMBER,        
+    IDENT,         
+    LABEL_DEF,     
+    COMMENT,       
+    COMMA,        
+    DIRECTIVE,     
+    SYS_CALL,      
+    END_OF_FILE,   
 };
 
 inline const char* tokenTypeToString(TokenType type) {
@@ -27,17 +27,18 @@ inline const char* tokenTypeToString(TokenType type) {
         case TokenType::LABEL_DEF:  return "LABEL_DEF";
         case TokenType::COMMENT:    return "COMMENT";
         case TokenType::COMMA:      return "COMMA";
-        case TokenType::END_OF_FILE:return "END_OF_FILE";
         case TokenType::DIRECTIVE:  return "DIRECTIVE";
+        case TokenType::SYS_CALL:   return "SYS_CALL";
+        case TokenType::END_OF_FILE:return "END_OF_FILE";
         default:                    return "UNKNOWN";
     }
 }
-struct Token {
-TokenType type;
-std::string value;
-int line;
-int col;
-};
 
+struct Token {
+    TokenType type;
+    std::string value; // Text of the token
+    int line;          // Line number in source
+    int col;           // Column number in source
+};
 
 #endif // ASSEMBLER_TOKEN_HPP

@@ -112,6 +112,7 @@ void Parser::validate_instruction(const Instruction &ins) {
     };
 
     switch (ins.op) {
+
         // ---- One operand required ----
         case OpCode::PUSH:
         case OpCode::FPUSH:
@@ -127,26 +128,38 @@ void Parser::validate_instruction(const Instruction &ins) {
         case OpCode::PUTFIELD:
         case OpCode::INVOKEVIRTUAL:
         case OpCode::INVOKESPECIAL:
+        case OpCode::SYS_CALL:       
+        case OpCode::NEWARRAY:       
             if (ins.operands.size() != 1)
                 bad("Instruction requires exactly 1 operand");
             break;
 
         // ---- Zero operand instructions ----
-        case OpCode::POP: case OpCode::DUP:
+        case OpCode::POP:
+        case OpCode::DUP:
         case OpCode::FPOP:
-        // Int arithmetic
-        case OpCode::IADD: case OpCode::ISUB: case OpCode::IMUL:
-        case OpCode::IDIV: case OpCode::INEG:
-        // Float arithmetic
-        case OpCode::FADD: case OpCode::FSUB: case OpCode::FMUL:
-        case OpCode::FDIV: case OpCode::FNEG:
-        // Int comparisons
-        case OpCode::ICMP_EQ: case OpCode::ICMP_LT: case OpCode::ICMP_GT:
-        case OpCode::ICMP_GEQ: case OpCode::ICMP_NEQ: case OpCode::ICMP_LEQ:
-        // Float comparisons
-        case OpCode::FCMP_EQ: case OpCode::FCMP_LT: case OpCode::FCMP_GT:
-        case OpCode::FCMP_GEQ: case OpCode::FCMP_NEQ: case OpCode::FCMP_LEQ:
-        // Return
+        case OpCode::IADD:
+        case OpCode::ISUB:
+        case OpCode::IMUL:
+        case OpCode::IDIV:
+        case OpCode::INEG:
+        case OpCode::FADD:
+        case OpCode::FSUB:
+        case OpCode::FMUL:
+        case OpCode::FDIV:
+        case OpCode::FNEG:
+        case OpCode::ICMP_EQ:
+        case OpCode::ICMP_LT:
+        case OpCode::ICMP_GT:
+        case OpCode::ICMP_GEQ:
+        case OpCode::ICMP_NEQ:
+        case OpCode::ICMP_LEQ:
+        case OpCode::FCMP_EQ:
+        case OpCode::FCMP_LT:
+        case OpCode::FCMP_GT:
+        case OpCode::FCMP_GEQ:
+        case OpCode::FCMP_NEQ:
+        case OpCode::FCMP_LEQ:
         case OpCode::RET:
             if (!ins.operands.empty())
                 bad("Instruction takes no operands");
@@ -159,6 +172,7 @@ void Parser::validate_instruction(const Instruction &ins) {
             break;
     }
 }
+
 
 
 void Parser::parse_directive() {
@@ -489,6 +503,27 @@ void Parser::parse_line() {
 
     ins.operands.push_back(op);
     }
+    else if (oc == OpCode::SYS_CALL) {
+        Operand op;
+
+        if (cur().type != TokenType::SYS_CALL) {
+            errlist.push_back("Expected syscall name after SYS_CALL");
+        } else {
+            std::string sysName = to_uppercopy(cur().value);
+            advance();
+
+            try {
+                int sysnum = mnemonic_to_syscall(sysName); // convert name -> number
+                op.kind = Operand::Kind::Immediate;
+                op.imm = sysnum;
+            } catch (const std::exception &e) {
+                errlist.push_back(e.what());
+            }
+        }
+
+        ins.operands.push_back(op);
+    }   
+
         // --- Default parsing for other instructions ---
         else {
             parse_operands(ins);

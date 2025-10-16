@@ -6,7 +6,8 @@
 #include <unordered_map>
 #include <cstdint>
 #include "assembler/SymbolTable.hpp"
-
+#include "assembler/Instruction.hpp"
+#include "assembler/Utils.hpp"
 struct Module {
     std::string filename;
     std::vector<uint8_t> code;

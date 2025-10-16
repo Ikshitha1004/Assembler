@@ -257,53 +257,55 @@ int main(int argc, char** argv) {
     cout << std::dec; // default to decimal for readability
 
     while (ip < code.size()) {
-        uint8_t opc = read_u8(code, ip);
-        // size_t opndSize = operand_size_for_opcode(opc);
-        OpCode oc = static_cast<OpCode>(opc);
-        size_t instrSize = instruction_size(oc);
+    uint8_t opc = read_u8(code, ip);
+    OpCode oc = static_cast<OpCode>(opc);
+    size_t instrSize = instruction_size(oc);
 
-        if (ip + instrSize > code.size()) {
-            cout << hex << setw(4) << setfill('0') << ip << ": ";
-            cout << opcode_to_string(oc) << " [truncated]\n";
-            break;
-        }
-
-        // --- Print raw bytes ---
+    if (ip + instrSize > code.size()) {
         cout << hex << setw(4) << setfill('0') << ip << ": ";
-        //cout<<"instrStr"<<instrSize<<endl;
-        for (size_t b = 0; b < instrSize; ++b) {
-            cout << setw(2) << setfill('0') << (int)code[ip + b] << " ";
-        }
-
-        // --- Print mnemonic ---
-        string mnem = opcode_to_string(oc);
-        cout << "   " << left << setw(2) << mnem << right;
-
-        // --- Decode operands ---
-        if (instrSize == 3) {
-            uint16_t val = read_u16(code, ip + 1);
-            cout << " " << dec << val;
-
-            auto it = reloc_map.find(ip + 1);
-            if (it != reloc_map.end()) cout << "    ; RELOC -> " << it->second.symbol;
-
-            for (const auto &kv : labels)
-                if (kv.second == val) { cout << "    ; label: " << kv.first; break; }
-
-        } else if (instrSize == 5) {
-            int32_t ival = read_i32(code, ip + 1);
-            cout << " " << dec << ival;
-
-            auto it = reloc_map.find(ip + 1);
-            if (it != reloc_map.end()) cout << "    ; RELOC -> " << it->second.symbol;
-
-            for (const auto &kv : methods)
-                if (kv.second == static_cast<uint32_t>(ival)) { cout << "    ; method: " << kv.first; break; }
-        }
-
-        cout << "\n";
-        ip += instrSize;
+        cout << opcode_to_string(oc) << " [truncated]\n";
+        break;
     }
+
+    // --- Print raw bytes ---
+    cout << hex << setw(4) << setfill('0') << ip << ": ";
+    for (size_t b = 0; b < instrSize; ++b)
+        cout << setw(2) << setfill('0') << (int)code[ip + b] << " ";
+
+    // --- Print mnemonic ---
+    string mnem = opcode_to_string(oc);
+    cout << "   " << left << setw(12) << mnem << right;
+
+    // --- Decode operands ---
+    if (instrSize == 3) {
+        // 16-bit operand (jumps)
+        uint16_t val = read_u16(code, ip + 1);
+        cout << " " << dec << val;
+        auto it = reloc_map.find(ip + 1);
+        if (it != reloc_map.end()) cout << "    ; RELOC -> " << it->second.symbol;
+    }
+    else if (instrSize == 5) {
+        // 32-bit operand (PUSH, CALL, etc.)
+        int32_t ival = read_i32(code, ip + 1);
+        cout << " " << dec << ival;
+        auto it = reloc_map.find(ip + 1);
+        if (it != reloc_map.end()) cout << "    ; RELOC -> " << it->second.symbol;
+    }
+    else if (instrSize == 2) {
+        // 8-bit operand (SYS_CALL, NEWARRAY, etc.)
+        uint8_t subcode = read_u8(code, ip + 1);
+
+        if (oc == OpCode::SYS_CALL) {
+            cout << " " << syscall_to_mnemonic(subcode);
+        } else {
+            cout << " " << (int)subcode;
+        }
+    }
+
+    cout << "\n";
+    ip += instrSize;
+}
+
 
 
     // Also dump relocation table (if present)

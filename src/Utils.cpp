@@ -35,6 +35,7 @@ void print_tokens(const std::vector<Token> &toks) {
             case TokenType::LABEL_DEF:   std::cout << "LABEL_DEF"; break;
             case TokenType::COMMENT:     std::cout << "COMMENT"; break;
             case TokenType::COMMA:       std::cout << "COMMA"; break;
+            case TokenType::SYS_CALL:    std::cout << "SYS_CALL"; break;
             case TokenType::END_OF_FILE: std::cout << "EOF"; break;
         }
         std::cout << ", \"" << t.value << "\" @"
@@ -42,15 +43,6 @@ void print_tokens(const std::vector<Token> &toks) {
     }
 }
 
-// void print_instructions(const std::vector<Instruction> &instrs) {
-//     for (size_t i = 0; i < instrs.size(); i++) {
-//         const auto &ins = instrs[i];
-//         std::cout << i << ": " << opcode_to_string(ins.op);
-//         for (auto &op : ins.operands)
-//             std::cout << " " << op;
-//         std::cout << "   (src line " << ins.src_line << ")\n";
-//     }
-// }
 void print_instructions(const std::vector<Instruction> &instrs) {
     for (size_t i = 0; i < instrs.size(); i++) {
         const auto &ins = instrs[i];

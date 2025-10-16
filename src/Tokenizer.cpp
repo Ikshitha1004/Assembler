@@ -36,18 +36,42 @@ std::vector<Token> Tokenizer::tokenize() {
     std::vector<Token> toks;
 
     static const std::unordered_set<std::string> MNEMONICS = {
+    // Stack operations
     "PUSH","POP","DUP","FPUSH","FPOP",
+
+    // Integer arithmetic
     "IADD","ISUB","IMUL","IDIV","INEG",
+
+    // Floating-point arithmetic
     "FADD","FSUB","FMUL","FDIV","FNEG",
+
+    // Load/store
     "LOAD","STORE","LOAD_ARG",
+
+    // Control flow
     "JMP","JZ","JNZ","CALL","RET",
+
+    // Comparisons
     "ICMP_EQ","ICMP_LT","ICMP_GT",
     "ICMP_GEQ","ICMP_NEQ","ICMP_LEQ",
     "FCMP_EQ","FCMP_LT","FCMP_GT",
     "FCMP_GEQ","FCMP_NEQ","FCMP_LEQ",
+
+    // Object operations
     "NEW","GETFIELD","PUTFIELD",
-    "INVOKEVIRTUAL","INVOKESPECIAL"
+    "INVOKEVIRTUAL","INVOKESPECIAL",
+
+
+    "SYS_CALL", // New mnemonic for syscall
+    "NEWARRAY"  // New mnemonic for array creation
 };
+static const std::unordered_set<std::string> SYS_CALL = {
+     // Syscalls
+    "OPEN","READ","SBRK","CLOSE","FSTAT","LSEEK",
+    "WRITE","GETPID","EXIT","TIME","STAT","SYSTEM",
+    "GETCWD","CHDIR","RENAME","UNLINK","MKDIR","ISATTY"
+};
+
 
     while (!eof()) {
         skip_space();
@@ -92,6 +116,10 @@ std::vector<Token> Tokenizer::tokenize() {
             std::string up = to_uppercopy(ident);
             if (MNEMONICS.count(up)) {
                 toks.push_back(make(TokenType::MNEMONIC, up, start_line, start_col));
+            }
+            else if(SYS_CALL.count(up))
+            {
+                toks.push_back(make(TokenType::SYS_CALL, up, start_line, start_col));
             } else {
                 toks.push_back(make(TokenType::IDENT, ident, start_line, start_col));
             }

@@ -104,22 +104,24 @@ bool Assembler::assemble(const std::string& inputFile, const std::string& output
     }
 
     // Convert IR → raw bytecode
-    std::vector<uint8_t> code;
+   std::vector<uint8_t> code;
+
     for (auto &w : irrep.words) {
         code.push_back(w.opcode);
+
+        std::size_t instrSize = instruction_size(static_cast<OpCode>(w.opcode));
+        std::size_t operandSize = (instrSize > 1) ? instrSize - 1 : 0;
+
         for (size_t i = 0; i < w.imm.size(); ++i) {
-    int imm = w.imm[i];
-    if (w.opcode == static_cast<uint8_t>(OpCode::JMP)|| w.opcode == static_cast<uint8_t>(OpCode::JZ) || w.opcode == static_cast<uint8_t>(OpCode::JNZ)) {
-        // write 16-bit little-endian
-        code.push_back(imm & 0xFF);
-        code.push_back((imm >> 8) & 0xFF);
-    } else {
-        // write 32-bit little-endian
-        for (int b = 0; b < 4; ++b)
-            code.push_back((imm >> (8 * b)) & 0xFF);
+            int imm = w.imm[i];
+
+            // Write operand based on its byte size
+            for (size_t b = 0; b < operandSize; ++b) {
+                code.push_back((imm >> (8 * b)) & 0xFF);
+            }
+        }
     }
-}
-}
+
 
     // Emit constant pool bytes
     std::vector<uint8_t> pool_bytes;

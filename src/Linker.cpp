@@ -178,10 +178,22 @@ void Linker::applyRelocations() {
                           << static_cast<int>(m.code[i]) << " ";
                 if ((i + 1) % 16 == 0) std::cout << std::endl; // newline every 16 bytes
             }
-            uint8_t opcode = m.code[operandOffset-1];
-            size_t patchBytes = 4;
-            if (opcode == 0x30 || opcode == 0x31 || opcode == 0x32)
-                patchBytes = 2;
+            // uint8_t opcode = m.code[operandOffset-1];
+            // size_t patchBytes = 4;
+            // if (opcode == 0x30 || opcode == 0x31 || opcode == 0x32)
+            //     patchBytes = 2;
+            uint8_t opcode = m.code[operandOffset - 1];
+            auto op = static_cast<OpCode>(opcode);
+
+            // Determine operand size dynamically
+            std::size_t instrSize = instruction_size(op);
+            std::size_t patchBytes = (instrSize > 1) ? instrSize - 1 : 0;
+
+            // Sanity check: must have something to patch
+            if (patchBytes == 0) {
+                throw std::runtime_error("Linker error: opcode at relocation site has no operand to patch");
+            }
+
 
             // std::cout << "  Opcode before operand: 0x"
             //           << std::hex << static_cast<int>(opcode)
