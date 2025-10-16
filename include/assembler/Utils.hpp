@@ -19,7 +19,7 @@ void print_symbol_table(const SymbolTable& symtab);
 
 inline std::size_t instruction_size(const OpCode op) {
     switch (op) {
-        // --- No operand (1B) ---
+        // --- No operand (1B total) ---
         case OpCode::IADD: case OpCode::ISUB: case OpCode::IMUL:
         case OpCode::IDIV: case OpCode::INEG:
         case OpCode::FADD: case OpCode::FSUB: case OpCode::FMUL:
@@ -32,6 +32,13 @@ inline std::size_t instruction_size(const OpCode op) {
         case OpCode::FCMP_GEQ: case OpCode::FCMP_NEQ: case OpCode::FCMP_LEQ:
             return 1;
 
+        // --- 1B operand (opcode + 8-bit operand) ---
+        case OpCode::LOAD_ARG:
+        case OpCode::NEW: case OpCode::GETFIELD: case OpCode::PUTFIELD:
+        case OpCode::INVOKEVIRTUAL: case OpCode::INVOKESPECIAL:
+        case OpCode::SYS_CALL: case OpCode::NEWARRAY:
+            return 1 + 1;
+
         // --- 2B operand (opcode + 16-bit offset) ---
         case OpCode::JMP:
         case OpCode::JZ:
@@ -40,10 +47,7 @@ inline std::size_t instruction_size(const OpCode op) {
 
         // --- 4B operand (opcode + 32-bit operand) ---
         case OpCode::PUSH: case OpCode::FPUSH:
-        case OpCode::LOAD: case OpCode::STORE: case OpCode::LOAD_ARG:
-        case OpCode::CALL:
-        case OpCode::NEW: case OpCode::GETFIELD: case OpCode::PUTFIELD:
-        case OpCode::INVOKEVIRTUAL: case OpCode::INVOKESPECIAL:
+        case OpCode::LOAD: case OpCode::STORE: case OpCode::CALL:
             return 1 + 4;
 
         // --- Default fallback ---
@@ -51,6 +55,7 @@ inline std::size_t instruction_size(const OpCode op) {
             return 1;
     }
 }
+
 
 
 #endif // ASSEMBLER_UTILS_HPP

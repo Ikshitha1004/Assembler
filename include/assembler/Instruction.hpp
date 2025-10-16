@@ -6,39 +6,67 @@
 #include <cstdint>
 
 enum class OpCode : uint8_t {
-    // Int arithmetic
-    IADD = 0x01, ISUB = 0x02, IMUL = 0x03, IDIV = 0x04, INEG = 0x05,
+    // Integer arithmetic
+    IADD = 0x01,
+    ISUB = 0x02,
+    IMUL = 0x03,
+    IDIV = 0x04,
+    INEG = 0x05,
 
-    // Float arithmetic
-    FADD = 0x06, FSUB = 0x07, FMUL = 0x08, FDIV = 0x09, FNEG = 0x0A,
+    // Floating point arithmetic
+    FADD = 0x06,
+    FSUB = 0x07,
+    FMUL = 0x08,
+    FDIV = 0x09,
+    FNEG = 0x0A,
 
-    // Stack
-    PUSH = 0x10, POP = 0x11, DUP = 0x12,
-    FPOP = 0x13, FPUSH = 0x14,
+    // Stack ops
+    PUSH = 0x10,
+    POP = 0x11,
+    DUP = 0x12,
+    FPOP = 0x13,
+    FPUSH = 0x14,
 
-    // Memory
-    LOAD = 0x20, STORE = 0x21, LOAD_ARG = 0x22,
+    // Memory / locals
+    LOAD = 0x20,
+    STORE = 0x21,
+    LOAD_ARG = 0x22,
 
     // Control flow
-    JMP = 0x30, JZ = 0x31, JNZ = 0x32,
-    CALL = 0x33, RET = 0x34,
+    JMP = 0x30,
+    JZ = 0x31,
+    JNZ = 0x32,
+    CALL = 0x33,
+    RET = 0x34,
 
-    // Int comparisons
-    ICMP_EQ = 0x40, ICMP_LT = 0x41, ICMP_GT = 0x42,
-    ICMP_GEQ = 0x46, ICMP_NEQ = 0x47, ICMP_LEQ = 0x48,
+    // Integer comparisons
+    ICMP_EQ = 0x40,
+    ICMP_LT = 0x41,
+    ICMP_GT = 0x42,
+    ICMP_GEQ = 0x46,
+    ICMP_NEQ = 0x47,
+    ICMP_LEQ = 0x48,
 
     // Float comparisons
-    FCMP_EQ = 0x43, FCMP_LT = 0x44, FCMP_GT = 0x45,
-    FCMP_GEQ = 0x49, FCMP_NEQ = 0x4A, FCMP_LEQ = 0x4B,
+    FCMP_EQ = 0x43,
+    FCMP_LT = 0x44,
+    FCMP_GT = 0x45,
+    FCMP_GEQ = 0x49,
+    FCMP_NEQ = 0x4A,
+    FCMP_LEQ = 0x4B,
 
-    // OO / Constant pool refs
+    // Object / Constant pool operations
     NEW           = 0x50,
     GETFIELD      = 0x51,
     PUTFIELD      = 0x52,
     INVOKEVIRTUAL = 0x53,
     INVOKESPECIAL = 0x54,
 
+    // System and array ops
+    SYS_CALL = 0x60,
+    NEWARRAY = 0x70,
     INVALID = 0xFF
+
 };
 
 struct Operand {
