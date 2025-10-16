@@ -42,6 +42,35 @@ OpCode mnemonic_to_opcode(const std::string &m) {
     auto it = map.find(m);
     return it != map.end() ? it->second : OpCode::INVALID;
 }
+int mnemonic_to_syscall(const std::string &name)
+{
+    static const std::unordered_map<std::string, int> sysmap = {
+        {"OPEN",   0x01},
+        {"READ",   0x02},
+        {"SBRK",   0x03},
+        {"CLOSE",  0x04},
+        {"FSTAT",  0x05},
+        {"LSEEK",  0x06},
+        {"WRITE",  0x07},
+        {"GETPID", 0x09},
+        {"EXIT",   0x0A},
+        {"TIME",   0x0B},
+        {"STAT",   0x0C},
+        {"SYSTEM", 0x0D},
+        {"GETCWD", 0x0E},
+        {"CHDIR",  0x0F},
+        {"RENAME", 0x10},
+        {"UNLINK", 0x11},
+        {"MKDIR",  0x12},
+        {"ISATTY", 0x13}
+    };
+
+    auto it = sysmap.find(name);
+    if (it == sysmap.end())
+        throw std::runtime_error("Unknown syscall: " + name);
+    return it->second;
+}
+
 
 std::string opcode_to_string(OpCode oc) {
     switch (oc) {
@@ -107,4 +136,18 @@ std::string opcode_to_string(OpCode oc) {
 
         default: return "INVALID";
     }
+    
+}
+std::string syscall_to_mnemonic(uint8_t code) {
+    static const std::unordered_map<uint8_t, std::string> rev = {
+        {0x01, "OPEN"}, {0x02, "READ"}, {0x03, "SBRK"}, {0x04, "CLOSE"},
+        {0x05, "FSTAT"}, {0x06, "LSEEK"}, {0x07, "WRITE"}, {0x09, "GETPID"},
+        {0x0A, "EXIT"}, {0x0B, "TIME"}, {0x0C, "STAT"}, {0x0D, "SYSTEM"},
+        {0x0E, "GETCWD"}, {0x0F, "CHDIR"}, {0x10, "RENAME"},
+        {0x11, "UNLINK"}, {0x12, "MKDIR"}, {0x13, "ISATTY"}
+    };
+
+    auto it = rev.find(code);
+    if (it != rev.end()) return it->second;
+    return "UNKNOWN";
 }

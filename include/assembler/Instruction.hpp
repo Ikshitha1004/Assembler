@@ -68,6 +68,27 @@ enum class OpCode : uint8_t {
     INVALID = 0xFF
 
 };
+enum class Syscall : uint8_t
+{
+    OPEN = 0x01,
+    READ = 0x02,
+    SBRK = 0x03,
+    CLOSE = 0x04,
+    FSTAT = 0x05,
+    LSEEK = 0x06,
+    WRITE = 0x07,
+    GETPID = 0x09,
+    EXIT = 0x0A,
+    TIME = 0x0B,
+    STAT = 0x0C,
+    SYSTEM = 0x0D,
+    GETCWD = 0x0E,
+    CHDIR = 0x0F,
+    RENAME = 0x10,
+    UNLINK = 0x11,
+    MKDIR = 0x12,
+    ISATTY = 0x13,
+};
 
 struct Operand {
     enum class Kind {
@@ -96,7 +117,8 @@ struct Instruction {
 
 std::string opcode_to_string(OpCode oc);
 OpCode mnemonic_to_opcode(const std::string &m);
-
+int mnemonic_to_syscall(const std::string &name);
+std::string syscall_to_mnemonic(uint8_t code);
 
 
 #endif // ASSEMBLER_INSTRUCTION_HPP
