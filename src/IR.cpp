@@ -37,7 +37,7 @@ IRBuilder::Report IRBuilder::build(const std::vector<Instruction>& program) {
 
             switch (op.kind) {
                 case Operand::Kind::Immediate:
-                    w.imm.push_back(op.imm);
+                    w.imm.push_back(op.val);
                     break;
 
                 case Operand::Kind::Label: {

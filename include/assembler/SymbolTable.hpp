@@ -9,7 +9,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-
+#include "assembler/Instruction.hpp"
 enum class Section { NONE, DATA, TEXT };
 
 struct LabelInfo {
@@ -186,8 +186,8 @@ std::vector<RelocationEntry> generate_relocation_table() const;
         Section current_section() const { return current_section_; }
 
         // data symbol management
-        bool define_data_symbol(const std::string& name, const std::vector<int32_t>& values);
-        std::pair<bool, std::vector<int32_t>> get_data_symbol(const std::string& name) const;
+        bool define_data_symbol(const std::string& name, const std::vector<Value>& values);
+        std::pair<bool, std::vector<Value>> get_data_symbol(const std::string& name) const;
 
 
 private:
@@ -214,7 +214,7 @@ private:
 
 // data symbols (for .data section)
 // name -> vector of values (since a label may refer to an array of constants)
-std::unordered_map<std::string, std::vector<int32_t>> data_symbols_;
+std::unordered_map<std::string, std::vector<Value>> data_symbols_;
 
 };
 

@@ -38,7 +38,8 @@ bool Parser::expect(TokenType t) {
     return false;
 }
 
-static bool is_number_literal(const std::string& s) {
+// Checks if it's a valid integer literal (e.g. 42, -3)
+static bool is_int_literal(const std::string& s) {
     if (s.empty()) return false;
     size_t i = 0;
     if (s[0] == '+' || s[0] == '-') i = 1;
@@ -49,47 +50,58 @@ static bool is_number_literal(const std::string& s) {
     return true;
 }
 
+// Checks if it's a valid float literal (e.g. 3.14, -0.5, .25)
+static bool is_float_literal(const std::string& s) {
+    if (s.empty()) return false;
+    bool has_digit = false;
+    bool has_dot = false;
+    size_t i = 0;
+    if (s[0] == '+' || s[0] == '-') i = 1;
+    if (i >= s.size()) return false;
+
+    for (; i < s.size(); ++i) {
+        char c = s[i];
+        if (std::isdigit(static_cast<unsigned char>(c))) {
+            has_digit = true;
+            continue;
+        }
+        if (c == '.' && !has_dot) {
+            has_dot = true;
+            continue;
+        }
+        return false;
+    }
+    // must have at least one digit and one dot for float
+    return has_digit && has_dot;
+}
+
+
 
 void Parser::parse_operands(Instruction &ins) {
     while (true) {
-       if (cur().type == TokenType::NUMBER) {
-    int val = std::stoi(cur().value);
-    Operand op;
+        if (cur().type == TokenType::NUMBER || cur().type == TokenType::IDENT) {
+            Operand op;
 
-    // // Only PUSH goes through constant pool
-    // if (ins.op == OpCode::PUSH) {
-    //     int idx = constpool.add_int(val);
-    //     op.kind = Operand::Kind::ConstPoolIndex;
-    //     op.pool_index = idx;
-    // } else {
-        // LOAD, STORE, etc. use immediate
-        op.kind = Operand::Kind::Immediate;
-        op.imm = val;
-    // }
+            if (is_float_literal(cur().value)) {
+                op.kind = Operand::Kind::Immediate;
+                float fval = std::stof(cur().value);
+                op.val.floatValue =fval; // store float bits as int
+                op.val.isFloat = true;
+            } 
+            else if (is_int_literal(cur().value)) {
+                op.kind = Operand::Kind::Immediate;
+                op.val.intValue = std::stoi(cur().value);
+                op.val.isFloat = false;
+            } 
+            else {
+                // Treat as label for now, resolved later
+                op.kind = Operand::Kind::Label;
+                op.label = cur().value;
+            }
 
-    ins.operands.push_back(op);
-    advance();
-}
-
-       else if (cur().type == TokenType::IDENT) {
-    // Could be a number (as string) or a label
-    Operand op;
-
-    if (is_number_literal(cur().value)) {
-        // Directly store as immediate
-        int val = std::stoi(cur().value);
-        op.kind = Operand::Kind::Immediate;
-        op.imm = val;
-    } else {
-        // Treat as label for now, resolved later
-        op.kind = Operand::Kind::Label;
-        op.label = cur().value;
-    }
-
-    ins.operands.push_back(op);
-    advance();
-}
-
+            ins.operands.push_back(op);
+            advance();
+        } 
         else {
             break;
         }
@@ -98,7 +110,6 @@ void Parser::parse_operands(Instruction &ins) {
         else break;
     }
 }
-
 
 /*----------------------------------------------------------------------------------------
 This function was written by Dakshayani
@@ -182,9 +193,12 @@ void Parser::parse_directive() {
     if (dir == ".data") {
         symtab.begin_data();
     }
-    else if (dir == ".text") {
+    else if (dir == ".code") {
         symtab.begin_text();
     }
+
+    
+
     else if (dir == ".word") {
         if (cur().type != TokenType::IDENT) {
             errlist.push_back("Expected label before .word at line " + std::to_string(line));
@@ -198,12 +212,16 @@ void Parser::parse_directive() {
             return;
         }
 
-        std::vector<int32_t> vals;
-        while (cur().type == TokenType::NUMBER) {
-            vals.push_back(std::stoi(cur().value));
-            advance();
-            if (cur().type == TokenType::COMMA) advance();
-        }
+        std::vector<Value> vals;
+while (cur().type == TokenType::NUMBER) {
+    const std::string &numStr = cur().value;
+    if (numStr.find('.') != std::string::npos)
+        vals.push_back(Value(std::stof(numStr)));
+    else
+        vals.push_back(Value(std::stoi(numStr)));
+    advance();
+    if (cur().type == TokenType::COMMA) advance();
+}
 
         if (!symtab.define_data_symbol(name, vals)) {
             errlist.push_back("Duplicate or invalid data symbol: " + name);
@@ -515,7 +533,7 @@ void Parser::parse_line() {
             try {
                 int sysnum = mnemonic_to_syscall(sysName); // convert name -> number
                 op.kind = Operand::Kind::Immediate;
-                op.imm = sysnum;
+                op.val = sysnum;
             } catch (const std::exception &e) {
                 errlist.push_back(e.what());
             }
@@ -536,7 +554,7 @@ void Parser::parse_line() {
                     case OpCode::JNZ:
                     {
                         const Operand& op = ins.operands[0];
-                        if (op.kind == Operand::Kind::Label && !is_number_literal(op.label)) {
+                        if (op.kind == Operand::Kind::Label && !is_int_literal(op.label) && !is_float_literal(op.label)) {
                             symtab.add_reference(instrs.size(), 0, op.label,
                                                       ins.src_line, ins.src_col);
                         }
@@ -546,7 +564,7 @@ void Parser::parse_line() {
                     case OpCode::INVOKEVIRTUAL:
                     {
                     const Operand& op = ins.operands[0];
-                    if (op.kind == Operand::Kind::Label && !is_number_literal(op.label)) {
+                    if (op.kind == Operand::Kind::Label && !is_int_literal(op.label)  && !is_float_literal(op.label)) {
                         std::cout<<"Method call to label: " << op.label << " at line " << ins.src_line << "\n";
                         auto p= symtab.get_method(op.label);
                         bool found = p.first;
@@ -557,7 +575,7 @@ void Parser::parse_line() {
                             Operand newOp;
                             newOp.kind = Operand::Kind::Immediate;
                             //pu tin immediate
-                            newOp.imm = methodInfo.address;
+                            newOp.val =(int) methodInfo.address;
                             ins.operands[0] = newOp;
                         } else {
                             std::cerr << "Error: undefined method " << op.label
@@ -572,7 +590,7 @@ void Parser::parse_line() {
 
                     const Operand& op = ins.operands[0];
 
-                    if (op.kind == Operand::Kind::Label && !is_number_literal(op.label)) {
+                    if (op.kind == Operand::Kind::Label && !is_int_literal(op.label)  && !is_float_literal(op.label)) {
                          
                         std::cout<<"Method call to label: " << op.label << " at line " << ins.src_line << "\n";
                        std:: string label = op.label;
@@ -585,13 +603,13 @@ void Parser::parse_line() {
                         if (found) {
                             // Replace label operand with an immediate numeric one
                             //put in immediate
-                            newOp.imm = methodInfo.address;
+                            newOp.val =(int) methodInfo.address;
                             ins.operands[0] = newOp;
                         } else {
                             symtab.add_reference(instrs.size(), 0, label,
                                ins.src_line, ins.src_col,
                                true);
-                            newOp.imm = 0;
+                            newOp.val = 0;
                             ins.operands[0] = newOp;
                             //std::cout<<"Adding pending reference for method: " << op.label << "\n";
                            

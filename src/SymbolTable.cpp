@@ -159,13 +159,13 @@ bool SymbolTable::set_method_stack_limit(uint32_t limit) {
     return true;
 }
 
-bool SymbolTable::define_data_symbol(const std::string& name, const std::vector<int32_t>& values) {
+bool SymbolTable::define_data_symbol(const std::string& name, const std::vector<Value>& values) {
     if (data_symbols_.find(name) != data_symbols_.end()) return false;
     data_symbols_[name] = values;
     return true;
 }
 
-std::pair<bool, std::vector<int32_t>> SymbolTable::get_data_symbol(const std::string& name) const {
+std::pair<bool, std::vector<Value>> SymbolTable::get_data_symbol(const std::string& name) const {
     auto it = data_symbols_.find(name);
     if (it == data_symbols_.end()) return {false, {}};
     return {true, it->second};

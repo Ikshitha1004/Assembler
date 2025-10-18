@@ -53,9 +53,15 @@ void print_instructions(const std::vector<Instruction> &instrs) {
             std::cout << " R" << op.reg;
             break;
 
+       
         case Operand::Kind::Immediate:
-            std::cout << " #" << op.imm;
+            if (op.val.isFloat)
+                std::cout << " #" << op.val.floatValue;
+            else
+                std::cout << " #" << op.val.intValue;
             break;
+
+    
 
         case Operand::Kind::Label:
             std::cout << " " << op.label;

@@ -89,6 +89,16 @@ enum class Syscall : uint8_t
     MKDIR = 0x12,
     ISATTY = 0x13,
 };
+struct Value {
+    int32_t intValue;
+    float floatValue;
+    bool isFloat;
+
+    Value() : intValue(0), isFloat(false) {}
+    Value(int v) : intValue(v), isFloat(false) {}
+    Value(float v) : floatValue(v), isFloat(true) {}
+};
+
 
 struct Operand {
     enum class Kind {
@@ -102,7 +112,7 @@ struct Operand {
 
     Kind kind {Kind::Immediate};
     int reg = -1;
-    int imm = 0;
+    Value val;
     int pool_index = -1;
     std::string label;
     struct { std::string clazz, name, desc; } fieldref;

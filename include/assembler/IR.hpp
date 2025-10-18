@@ -14,7 +14,7 @@ namespace assembler {
 // Final numeric-only IR node (after resolution)
 struct IRWord {
     uint8_t                 opcode;
-    std::vector<int32_t>    imm;   
+    std::vector<Value>    imm;   
     int                     src_line = 0; 
     int                     src_col  = 0;
 };

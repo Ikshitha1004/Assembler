@@ -126,14 +126,30 @@ static const std::unordered_set<std::string> SYS_CALL = {
             continue;
         }
 
-        // Numbers (support negative)
-        if (std::isdigit((unsigned char)c) || (c == '-' && pos + 1 < src.size() && std::isdigit((unsigned char)src[pos + 1]))) {
+        // Numbers (support negative and floating point)
+        if (std::isdigit((unsigned char)c) ||
+            (c == '-' && pos + 1 < src.size() && (std::isdigit((unsigned char)src[pos + 1]) || src[pos + 1] == '.'))) {
+            
             std::string num;
-            if (peek() == '-') num.push_back(get());
-            while (!eof() && std::isdigit((unsigned char)peek())) num.push_back(get());
+            if (peek() == '-') num.push_back(get()); // handle sign
+
+            bool has_dot = false;
+            while (!eof()) {
+                char ch = peek();
+                if (std::isdigit((unsigned char)ch)) {
+                    num.push_back(get());
+                } else if (ch == '.' && !has_dot) {
+                    has_dot = true;
+                    num.push_back(get());
+                } else {
+                    break;
+                }
+            }
+
             toks.push_back(make(TokenType::NUMBER, num, start_line, start_col));
             continue;
         }
+
 
         // Comma
         if (c == ',') {
