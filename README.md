@@ -1,79 +1,89 @@
 
-# Assembler, Linker, and Loader 
+# Assembler and Linker
 ## CSD LAB — CS401P
-This repository contains **Assembler, Linker, and Loader** in C++ that work together to process a custom VM instruction set architecture (ISA) for CSD Lab.
 
----
+This repository contains  **Assembler and Linker** in C++ for a custom **stack-based Virtual Machine (VM)** instruction set used in CSD Lab.
+
 
 ## Project Overview
 
+### **Assembler (with Integrated Linker)**
 
-* **Assembler**
-  Converts human-readable assembly source code into a stream of machine-readable instructions.
-* **Linker**
-  Resolves labels, symbols, and combines multiple object files into a single executable image.
-* **Loader**
-  Prepares the executable for execution by resolving addresses, initializing memory, and passing control to the virtual machine.
+* Converts multiple `.asm` source files into a single **linked executable** (`.vm`).
+* Internally performs:
 
+  * **Assembly:** Tokenization, parsing, and opcode emission.
+  * **Symbol management:** Builds local and global symbol tables.
+  * **Relocation & Linking:** Resolves inter-file label and function references before generating the final binary.
 
 ---
 
 ## Key Features
 
-* **23-Instruction Stack-Based ISA**
-  Supports arithmetic, stack operations, memory access, control flow, comparisons, and basic object-oriented instructions.
-* **Assembler**
+* **Multi-file support:**
+  Directly accepts multiple `.asm` files and links them into one `.vm`.
 
-  * Tokenizes mnemonics, numbers, identifiers, and labels.
-  * Validates instruction syntax.
-  * Builds an intermediate representation (`Instruction` objects).
-* **Linker**
+* **Assembler:**
 
-  * Resolves labels for jumps and calls.
-  * Handles multiple assembly source files.
-* **Loader**
+  * Tokenizes **mnemonics**, **numbers**, **identifiers**, and **labels** from the input source.
+  * Validates **instruction syntax** and **operand counts** for each mnemonic.
+  * Builds an **Intermediate Representation (IR)** containing instruction metadata and symbol references.
+  * Emits **relocatable object files** (`.vmobj`) with symbol and relocation tables for the linker.
 
-  * Loads the linked program into memory.
-  * Initializes stack, constant pool, and instruction pointer.
-* **Error Handling**
-  Detects invalid mnemonics, missing labels, and malformed operands.
-* **Demo Program**
-  Included sample assembly file (`demo.asm`) demonstrates stack arithmetic, branching, and object operations.
+* **Linker:**
 
----
+  * Resolves **labels** and **method references** (`CALL`, `JMP`, `JZ`, `JNZ`) across multiple files.
+  * Merges **code**, **symbol**, and **relocation** sections into one unified executable.
+  * Performs **relocation patching**, automatically updating addresses after merging code sections.
+  * Produces a final `.vm` file ready for execution on the Virtual Machine.
 
-
-
-## Planned Instruction Set (Subset)
-
-* **Arithmetic**: IADD, ISUB, IMUL, IDIV, INEG
-* **Stack**: PUSH, POP, DUP
-* **Memory**: LOAD, STORE
-* **Control Flow**: JMP, JZ, JNZ, CALL, RET
-* **Comparison**: ICMP\_EQ, ICMP\_LT, ICMP\_GT
-* **Object-Oriented**: NEW, GETFIELD, PUTFIELD, INVOKEVIRTUAL, INVOKESPECIAL
+* **Error handling:**
+  Detects invalid mnemonics, undefined labels, and duplicate symbols.
+  Here’s your corrected and complete **Key Features** section — rewritten for clarity, completeness, and correctness, focusing only on **Assembler + Linker** integration (since Loader is not part of this stage):
 
 ---
 
-## Usage
+## **Instruction Set (Subset)**
 
-1. **Build**:
+| **Category**                  | **Instructions**                                                                                                                         |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **Arithmetic (Int & Float)**  | `IADD`, `ISUB`, `IMUL`, `IDIV`, `INEG`, `FADD`, `FSUB`, `FMUL`, `FDIV`, `FNEG`                                                           |
+| **Stack Operations**          | `PUSH`, `POP`, `DUP`, `FPUSH`, `FPOP`                                                                                                    |
+| **Memory Access**             | `LOAD`, `STORE`, `LOAD_ARG`                                                                                                              |
+| **Control Flow**              | `JMP`, `JZ`, `JNZ`, `CALL`, `RET`                                                                                                        |
+| **Comparisons (Int & Float)** | `ICMP_EQ`, `ICMP_LT`, `ICMP_GT`, `ICMP_GEQ`, `ICMP_NEQ`, `ICMP_LEQ`, `FCMP_EQ`, `FCMP_LT`, `FCMP_GT`, `FCMP_GEQ`, `FCMP_NEQ`, `FCMP_LEQ` |
+| **Object-Oriented**           | `NEW`, `GETFIELD`, `PUTFIELD`, `INVOKEVIRTUAL`, `INVOKESPECIAL`, `NEWARRAY`                                                              |
+| **System Interface**          | `SYS_CALL <id>` — performs a VM-level system call (e.g., `OPEN`, `READ`, `WRITE`, `EXIT`, etc.)                                          |
 
-   ```bash
-   make clean
-   make
-   ```
 
-   Produces the assembler binary in `bin/assembler`.
+---
+## **Build and Run Instructions**
 
-2. **Run**:
+### **Build (CMake-based):**
 
-   ```bash
-   ./bin/assembler demo.asm
-   ```
+```bash
+# On Linux
+./build.sh
 
-3. **Output**:
-   Prints tokens and parsed instruction list.
+# On Windows
+.\build.bat
+```
+
+### **Usage**
+
+```bash
+# Assemble and link multiple files into a single VM executable
+./bin/assembler output.vm input1.asm input2.asm input3.asm
+# Disassemble .vmobj or .vm files for debugging
+./bin/disassembler <file>.vmobj
+./bin/disassembler <file>.vm
+```
+
+The assembler automatically:
+
+1. Assembles all `.asm` files.
+2. Merges symbol tables and relocations.
+3. Outputs the final linked executable (`output.vm`).
 
 ---
 
@@ -84,6 +94,8 @@ This repository contains **Assembler, Linker, and Loader** in C++ that work toge
 | Ikshitha | (CS22B027)  |
 | Sahiti | (CS22B056)  |
 | Dakshayini | (CS21B016)  |
+
+Detailed module-wise documentation and contributions can be found in the [MODULE_WISE_DOCS](MODULE_WISE_DOCS/) folder.
 
 ---
 ## Module 3 – Contributions
