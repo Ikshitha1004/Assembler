@@ -89,6 +89,13 @@ enum class Syscall : uint8_t
     MKDIR = 0x12,
     ISATTY = 0x13,
 };
+enum class FieldType : uint8_t {
+    INT = 1,
+    FLOAT = 2,
+    OBJECT = 3
+    //add after compiler support-char..
+};
+
 struct Value {
     int32_t intValue;
     float floatValue;

@@ -1,80 +1,27 @@
-.text
+.code
+.method test_newarray
+.limit stack 10
+.limit locals 10
 
-; -------------------
-; Class definition
-; -------------------
-.method sum
-    .limit stack 2
-    .limit locals 3   ; 0=x, 1=y, 2=result
-    LOAD 0
-    LOAD 1
-    IADD
-    STORE 2
-    LOAD 2
-    RET
-.endmethod
+; Create INT array of size 3, store in local 0
+; local 0 = reference to new array of size 5
+PUSH 5       ; size of array
+PUSH 0       ; local index to store array reference
+NEWARRAY INT ; VM will pop size & local index, type is encoded
 
-.method setValues
-    .limit stack 2
-    .limit locals 2   ; 0=x, 1=y
-    LOAD 0
-    STORE 0
-    LOAD 1
-    STORE 1
-    RET
-.endmethod
-; -------------------
-; Main program
-; -------------------
-.method main
-    .limit stack 6
-    .limit locals 5   ; 0=x, 1=y, 2=total, 3=i, 4=temp
-    ; Initialize object values (x=5, y=10)
-    PUSH 5
-    STORE 0
-    PUSH 10
-    STORE 1
-    
-    ; Loop over array NUMS and add each value to x
-    PUSH 0
-    STORE 3          ; i = 0
-set:
-LOOP_START:
-    LOAD 3
-    PUSH 5           ; SIZE = 5
-    ISUB
-    JZ LOOP_END      ; exit loop if i == SIZE
+; Create FLOAT array of size 2, store in local 1
+PUSH 1       ; local index
+PUSH 2       ; size
+NEWARRAY FLOAT
 
-    ; temp = NUMS[i]
-    LOAD 3
-    ; Here we simulate getting NUMS[i] (NUMS + i)
-    ; For simplicity, just push a value from NUMS
-    ; e.g., NUMS[0]=2, NUMS[1]=4, etc.
-    ; We'll simulate as:
-    LOAD 3
-    PUSH 2
-    IMUL
-    STORE 4          ; temp = NUMS[i] (simulated)
+; Create OBJECT array of size 1, store in local 2
+PUSH 2       ; local index
+PUSH 1       ; size
+NEWARRAY OBJECT
 
-    ; x = x + temp
-    LOAD 0
-    LOAD 4
-    IADD
-    STORE 0
-
-    ; i = i + 1
-    LOAD 3
-    PUSH 1
-    IADD
-    STORE 3
-
-    JMP LOOP_START
-
-LOOP_END:
-
-    ; Compute total = x + y
-    CALL setValues
-    STORE 2          ; total = sum result
-
-    RET
+; Test: push sizes to stack and return
+LOAD 0       ; load INT array ref
+LOAD 1       ; load FLOAT array ref
+LOAD 2       ; load OBJECT array ref
+RET
 .endmethod

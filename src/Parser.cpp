@@ -78,6 +78,34 @@ static bool is_float_literal(const std::string& s) {
 
 
 void Parser::parse_operands(Instruction &ins) {
+    if (ins.op == OpCode::NEWARRAY) {
+        if (cur().type != TokenType::NUMBER && cur().type != TokenType::IDENT) {
+            throw std::runtime_error("NEWARRAY expects a type operand (INT/FLOAT/OBJECT)");
+        }
+
+        Operand op;
+        if (is_int_literal(cur().value)) {
+            op.kind = Operand::Kind::Immediate;
+            op.val.intValue = std::stoi(cur().value);
+            op.val.isFloat = false;
+        } else {
+            // Support named type like "INT", "FLOAT", "OBJECT"
+            std::string typeStr = cur().value;
+            int typeVal = -1;
+            if (typeStr == "INT" || typeStr=="int") typeVal = static_cast<int>(FieldType::INT);
+            else if (typeStr == "FLOAT" || typeStr=="float" )typeVal = static_cast<int>(FieldType::FLOAT);
+            else if (typeStr == "OBJECT" || typeStr=="object") typeVal = static_cast<int>(FieldType::OBJECT);
+            else throw std::runtime_error("Invalid type for NEWARRAY: " + typeStr);
+
+            op.kind = Operand::Kind::Immediate;
+            op.val.intValue = typeVal;
+            op.val.isFloat = false;
+        }
+
+        ins.operands.push_back(op);
+        advance();
+        return;
+    }
     while (true) {
         if (cur().type == TokenType::NUMBER || cur().type == TokenType::IDENT) {
             Operand op;

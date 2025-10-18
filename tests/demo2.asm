@@ -1,36 +1,24 @@
-; Test 2: Object-oriented instructions + control flow
+.code
+.method read_example
+.limit stack 3
+.limit locals 3
 
-start:
-; --- Object creation ---
-NEW MyClass           ; allocate object (class_ref = MyClass)
-DUP
-PUSH 77
-PUTFIELD MyClass.myField      ; set field 'myField'
-GETFIELD MyClass.myField      ; get field 'myField'
-POP
+; Assume locals[0..2] are available
 
-; --- Virtual calls ---
-NEW MyClass
-DUP
-INVOKEVIRTUAL MyClass.myMethod ; call virtual method 'myMethod'
+; --- Prepare arguments for SYS_CALL READ ---
+PUSH 0       ; localsIdx = 0 (store buffer reference here)
+PUSH 16      ; size = 16 bytes to read
+PUSH 0       ; fd = 0 (file descriptor in fileData[0])
 
-NEW MyClass
-DUP
-INVOKESPECIAL MyClass.init     ; constructor/private method
+SYS_CALL READ ; Perform read, bytesRead pushed onto stack
 
-; --- Control flow with labels ---
-PUSH 0
-JZ branch_taken
-PUSH 100        ; skipped if zero
+STORE 2      ; Store bytesRead into locals[2]
 
-branch_taken:
-PUSH 200
+; Example arithmetic after read
+LOAD 2       ; Load bytesRead
+PUSH 5
+IADD         ; Add 5
+STORE 1      ; Store result in locals[1]
 
-; Call helper function
-CALL helper
-
-; End of program: VM stops naturally after last instruction
-
-helper:
-PUSH 55
 RET
+.endmethod

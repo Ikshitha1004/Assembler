@@ -1,5 +1,7 @@
 #include "assembler/Instruction.hpp"
 #include <unordered_map>
+#include <stdexcept>
+
 
 OpCode mnemonic_to_opcode(const std::string &m) {
     static const std::unordered_map<std::string, OpCode> map = {
