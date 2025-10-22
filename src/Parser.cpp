@@ -78,6 +78,43 @@ static bool is_float_literal(const std::string& s) {
 
 
 void Parser::parse_operands(Instruction &ins) {
+     if (ins.op == OpCode::CALL) {
+        if (cur().type != TokenType::IDENT) {
+            throw std::runtime_error("Expected method name after CALL");
+        }
+
+        // Get method name
+        std::string methodName = cur().value;
+        advance();
+
+        // Collect method signature types (all consecutive IDENTs)
+        std::vector<std::string> argTypes;
+        while (cur().type == TokenType::IDENT) {
+            argTypes.push_back(cur().value);
+            advance();
+        }
+
+        // Build signature string: "int,int,float"
+        std::string sig;
+        for (size_t i = 0; i < argTypes.size(); ++i) {
+            sig += argTypes[i];
+            if (i != argTypes.size() - 1) sig += ",";
+        }
+
+        // Resolve owner (if your symbol table tracks current class)
+        std::string owner = symtab.get_current_class();
+
+        // Construct method key like "Class.add(int,int)" or "add(int,int)"
+        std::string key = SymbolTable::make_method_key(owner, methodName, sig);
+
+        // Push operand as label (method reference)
+        Operand op;
+        op.kind = Operand::Kind::Label;
+        op.label = key;
+        ins.operands.push_back(op);
+
+        return;
+    }
     if (ins.op == OpCode::NEWARRAY) {
         if (cur().type != TokenType::NUMBER && cur().type != TokenType::IDENT) {
             throw std::runtime_error("NEWARRAY expects a type operand (INT/FLOAT/OBJECT)");
@@ -106,6 +143,7 @@ void Parser::parse_operands(Instruction &ins) {
         advance();
         return;
     }
+
     while (true) {
         if (cur().type == TokenType::NUMBER || cur().type == TokenType::IDENT) {
             Operand op;
@@ -311,38 +349,44 @@ while (cur().type == TokenType::NUMBER) {
         advance();
     }
 
-else if (dir == ".method") {
+
+ else if (dir == ".method") {
     if (cur().type != TokenType::IDENT) {
         errlist.push_back("Expected method name after .method");
         return;
     }
 
+    // First IDENT is method name
     std::string methodName = cur().value;
     advance();
-    // if (cur().type != TokenType::IDENT) {
-    //     errlist.push_back("Expected method signature after method name");
-    //     return;
-    // }
-    // std::string signature = cur().value;
-    // advance();
 
-    // Use current_class_ if we are inside a class, else global method
-    auto owner = symtab.get_current_class();  // expose current_class_ via getter
-    
+    // Collect subsequent IDENT tokens as argument types
+    std::vector<std::string> argTypes;
+    while (cur().type == TokenType::IDENT) {
+        argTypes.push_back(cur().value);
+        advance();
+    }
 
-    if (!symtab.begin_method(methodName, "")) {
-        std::string fullKey = owner.empty()
-            ? methodName 
-            : owner + "." + methodName ;
-        errlist.push_back("Duplicate method: " + fullKey);
+    // Build signature string
+    std::string sig;
+    for (size_t i = 0; i < argTypes.size(); ++i) {
+        sig += argTypes[i];
+        if (i != argTypes.size() - 1) sig += ",";
+    }
+
+    auto owner = symtab.get_current_class();
+    std::string key = SymbolTable::make_method_key(owner, methodName, sig);
+
+    // Register method
+    if (!symtab.begin_method(methodName, sig)) {
+        errlist.push_back("Duplicate method: " + key);
         return;
     }
-    
 
-    // --- Set method start address to current location counter ---
+    // Set method start address
     symtab.set_method_address(symtab.lc());
-
 }
+
 
     else if (dir == ".limit") {
         if (cur().type != TokenType::IDENT) {

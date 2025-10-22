@@ -132,7 +132,7 @@ bool SymbolTable::begin_method(const std::string& method_name,
         return false;
     }
     MethodInfo mi;
-    mi.name = method_name;
+    mi.name = method_name+"("+signature+")";
     mi.signature = signature;
     mi.address = lc_bytes_;          // mark start address at current LC
     mi.size = 0;                     // <-- NEW: will be filled at end_method
@@ -262,9 +262,10 @@ std::string SymbolTable::make_field_key(const std::string& owner,
 std::string SymbolTable::make_method_key(const std::string& owner,
                                          const std::string& name,
                                          const std::string& sig) {
-    if (owner.empty()) return name;
-    return owner + "." + name;
+    if (owner.empty()) return name + "(" + sig + ")";
+    return owner + "." + name + "(" + sig + ")";
 }
+
 std::vector<RelocationEntry> SymbolTable::generate_relocation_table() const {
     std::vector<RelocationEntry> relos;
     for (const auto& ref : pending_refs_) {
