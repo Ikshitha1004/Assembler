@@ -269,7 +269,7 @@ void Linker::link(const std::string& outputVmPath) {
     mergeModules(finalCode);
 
     uint32_t entryPoint = 0;
-    auto it = global_symbols_.find("main");
+    auto it = global_symbols_.find("main()");  // <-- use exact symbol name from vmobj
     if (it != global_symbols_.end()) entryPoint = it->second;
 
     writeFinalVM(outputVmPath, finalCode, entryPoint);

@@ -35,8 +35,26 @@ static int32_t read_i32(const vector<uint8_t>& buf, size_t off) {
     return static_cast<int32_t>(read_u32(buf, off));
 }
 
-// Determine operand byte-size for an opcode (based on your assembler/VM)
-// returns number of bytes of operand (0, 2, or 4)
+static bool is_float_opcode(OpCode oc) {
+    switch (oc) {
+        case OpCode::FPUSH:
+        case OpCode::FPOP:
+        case OpCode::FADD:
+        case OpCode::FSUB:
+        case OpCode::FMUL:
+        case OpCode::FDIV:
+        case OpCode::FCMP_EQ:
+        case OpCode::FCMP_LT:
+        case OpCode::FCMP_GT:
+        case OpCode::FCMP_GEQ:
+        case OpCode::FCMP_NEQ:
+        case OpCode::FCMP_LEQ:
+            return true;
+        default:
+            return false;
+    }
+}
+
 
 
 
@@ -184,7 +202,9 @@ static bool parse_vmobj(const vector<uint8_t>& data,
 // Parse final .vm (executable) format code offset/size and constants (simple)
 static bool parse_vm_exec(const vector<uint8_t>& data,
                           size_t &codeOffset, size_t &codeSize,
-                          size_t &constPoolOffset, size_t &constPoolSize)
+                          size_t &constPoolOffset, size_t &constPoolSize,
+                          uint32_t &entryPoint)
+                          
 {
     if (data.size() < 44) return false;
     // VM header format used in your VM::loadFromBinary (magic(4) + version + entry + constPoolOffset + constPoolSize + codeOffset + codeSize + globalsOffset + globalsSize + classMetaOffset + classMetaSize)
@@ -194,7 +214,7 @@ static bool parse_vm_exec(const vector<uint8_t>& data,
     const uint32_t EXPECTED_MAGIC = 0x01004D56; // you used hdr.magic = 0x01004D56
     if (magic != EXPECTED_MAGIC) return false;
     uint32_t version = read_u32(data, 4);
-    uint32_t entry = read_u32(data, 8);
+    entryPoint = read_u32(data, 8);
     constPoolOffset = read_u32(data, 12);
     constPoolSize   = read_u32(data, 16);
     codeOffset = read_u32(data, 20);
@@ -236,13 +256,18 @@ int main(int argc, char** argv) {
     } else {
         // Try executable .vm
         size_t codeOffset=0, codeSize=0, constPoolOffset=0, constPoolSize=0;
-        bool ok = parse_vm_exec(filedata, codeOffset, codeSize, constPoolOffset, constPoolSize);
+        uint32_t entryPoint=0;
+        bool ok = parse_vm_exec(filedata, codeOffset, codeSize, constPoolOffset, constPoolSize,entryPoint);
         if (!ok) {
             cerr << "Unknown file format or unsupported magic\n";
             return 1;
         }
         code.assign(filedata.begin()+codeOffset, filedata.begin()+codeOffset+codeSize);
-        cout << "[VM_EXEC] codeOffset=" << codeOffset << " codeSize=" << codeSize << " constPoolOffset=" << constPoolOffset << " constPoolSize=" << constPoolSize << "\n";
+        cout << "[VM_EXEC] codeOffset=" << codeOffset
+     << " codeSize=" << codeSize
+     << " constPoolOffset=" << constPoolOffset
+     << " constPoolSize=" << constPoolSize
+     << " entryPoint=0x" << hex << entryPoint << dec << "\n";
         // .vm executable normally contains class metadata which we don't need for disassembly here
     }
 
@@ -284,13 +309,28 @@ int main(int argc, char** argv) {
         auto it = reloc_map.find(ip + 1);
         if (it != reloc_map.end()) cout << "    ; RELOC -> " << it->second.symbol;
     }
+    // else if (instrSize == 5) {
+    //     // 32-bit operand (PUSH, CALL, etc.)
+    //     int32_t ival = read_i32(code, ip + 1);
+    //     cout << " " << dec << ival;
+    //     auto it = reloc_map.find(ip + 1);
+    //     if (it != reloc_map.end()) cout << "    ; RELOC -> " << it->second.symbol;
+    // }
     else if (instrSize == 5) {
-        // 32-bit operand (PUSH, CALL, etc.)
-        int32_t ival = read_i32(code, ip + 1);
+    // 32-bit operand (PUSH, FPUSH, CALL, etc.)
+    uint32_t raw = read_u32(code, ip + 1);
+
+    if (is_float_opcode(oc)) {
+        float f;
+        std::memcpy(&f, &raw, sizeof(f));
+        cout << " " << std::fixed << std::setprecision(6) << f;
+    } else {
+        int32_t ival = static_cast<int32_t>(raw);
         cout << " " << dec << ival;
-        auto it = reloc_map.find(ip + 1);
-        if (it != reloc_map.end()) cout << "    ; RELOC -> " << it->second.symbol;
     }
+    auto it = reloc_map.find(ip + 1);
+    if (it != reloc_map.end()) cout << "    ; RELOC -> " << it->second.symbol;
+}
     else if (instrSize == 2) {
         // 8-bit operand (SYS_CALL, NEWARRAY, etc.)
         uint8_t subcode = read_u8(code, ip + 1);
