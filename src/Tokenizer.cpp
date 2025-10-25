@@ -65,6 +65,15 @@ std::vector<Token> Tokenizer::tokenize() {
     "SYS_CALL", // New mnemonic for syscall
     "NEWARRAY"  // New mnemonic for array creation
 };
+static const std::unordered_set<std::string> CLASS_META_KEYWORDS = {
+    "class_count",
+    "class_begin",
+    "field_count",
+    "field",
+    "method_count",
+    "method",
+    "class_end"
+};
 static const std::unordered_set<std::string> SYS_CALL = {
      // Syscalls
     "OPEN","READ","SBRK","CLOSE","FSTAT","LSEEK",
@@ -110,6 +119,10 @@ static const std::unordered_set<std::string> SYS_CALL = {
             if (!eof() && peek() == ':') {
                 get(); // consume ':'
                 toks.push_back(make(TokenType::LABEL_DEF, ident, start_line, start_col));
+                continue;
+            }
+            if (CLASS_META_KEYWORDS.count(ident)) {
+                toks.push_back(make(TokenType::IDENT, ident, start_line, start_col));
                 continue;
             }
 
