@@ -88,8 +88,8 @@ bool SymbolTable::add_field_metadata(const FieldInfo& field) {
 bool SymbolTable::add_method_metadata(const MethodInfo& method) {
     if (!current_class_meta_) return false;
     current_class_meta_->methods.push_back(method);
-    std::string key = make_method_key(current_class_meta_->name, method.name, method.signature);
-    methods_[key] = method;
+    // std::string key = make_method_key(current_class_meta_->name, method.name, method.signature);
+    // methods_[method.name] = method;
     return true;
 }
 
@@ -130,27 +130,9 @@ bool SymbolTable::add_field(const std::string& owner_class,
 // ----- Methods -----
 
 bool SymbolTable::begin_method(const std::string& method_name, const std::string& signature) {
-    std::string key = make_method_key(current_class_, method_name, signature);
-    if (methods_.find(key) != methods_.end()) return false;
-
-    MethodInfo mi;
-    mi.name = method_name;
-    mi.signature = signature;
-    mi.address = lc_bytes_;
-    mi.size = 0;
-    mi.stack_limit = 0;
-    mi.locals_limit = 0;
-    mi.index = UINT32_MAX;
-
-    methods_[key] = mi;
-
-    // Add to class metadata if active
-    if (!current_class_.empty() && current_class_meta_) {
-        current_class_meta_->methods.push_back(mi);
-    }
-
-    current_method_key_ = key;
-    return true;
+    uint32_t addr = lc_bytes_;  // current code offset
+    current_method_key_ = method_name;
+    return define_method(current_class_, method_name, signature, addr, 0, 0, true);
 }
 
 bool SymbolTable::set_method_stack_limit(uint32_t limit) {
@@ -195,10 +177,40 @@ bool SymbolTable::define_method(const std::string& class_name,
                                 const std::string& signature,
                                 uint32_t address,
                                 uint32_t stack_limit,
-                                uint32_t locals_limit) {
-    // std::string key = make_method_key(class_name, method_name, signature);
-    if (methods_.find(method_name) != methods_.end()) return false;
+                                uint32_t locals_limit,
+                                bool is_defined= true) {
+    // Find class metadata if any
+    ClassMetadata* cm = nullptr;
+    if (!class_name.empty()) {
+        auto it = class_metadata_.find(class_name);
+        if (it == class_metadata_.end()) return false;
+        cm = &it->second;
+    }
 
+    // Check if method already exists in class metadata
+    MethodInfo* existing = nullptr;
+    if (cm) {
+        for (auto &m : cm->methods) {
+            if (m.name == method_name && m.signature == signature) {
+                existing = &m;
+                break;
+            }
+        }
+    }
+
+    if (existing) {
+        if (is_defined) {
+            // Update placeholder with real info
+            existing->address = address;
+            existing->stack_limit = stack_limit;
+            existing->locals_limit = locals_limit;
+            existing->is_defined = true;
+            methods_[method_name] = *existing;  // update global map
+        }
+        return true;
+    }
+
+    // Create new MethodInfo
     MethodInfo mi;
     mi.name = method_name;
     mi.signature = signature;
@@ -207,16 +219,18 @@ bool SymbolTable::define_method(const std::string& class_name,
     mi.stack_limit = stack_limit;
     mi.locals_limit = locals_limit;
     mi.index = UINT32_MAX;
-    methods_[method_name] = mi;
+    mi.is_defined = is_defined;
 
-    if (!class_name.empty()) {
-        auto cit = class_metadata_.find(class_name);
-        if (cit != class_metadata_.end())
-            cit->second.methods.push_back(mi);
-    }
+    // Insert into class metadata if available
+    if (cm) cm->methods.push_back(mi);
+
+    // Insert into global methods map if definition
+    if (is_defined) methods_[method_name] = mi;
 
     return true;
 }
+
+
 
 
 std::pair<bool, MethodInfo> SymbolTable::get_method(const std::string& method_key) const {
@@ -237,12 +251,11 @@ std::string SymbolTable::make_field_key(const std::string& owner, const std::str
     return owner + "." + name;
 }
 
-std::string SymbolTable::make_method_key(const std::string& owner,
-                                         const std::string& name,
-                                         const std::string& sig) {
-    if (owner.empty()) return name + "(" + sig + ")";
-    return owner + "." + name + "(" + sig + ")";
-}
+// std::string SymbolTable::make_method_key(const std::string& owner,
+//                                          const std::string& name,
+//                                          const std::string& sig) {
+//     return owner + "." + name + "(" + sig + ")";
+// }
 
 // ----- Data symbols -----
 

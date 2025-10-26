@@ -27,10 +27,9 @@ class_end
 LOAD_ARG 0 ; 'this' for assignment to member 'publicVar'
 PUSH 10
 PUTFIELD 0
-RET
 .endmethod
 
-.method TestClass@constructor
+.method TestClass.TestClass
 .limit stack 4
 .limit locals 2
 PUSH 0
@@ -46,6 +45,11 @@ LOAD 1  ; Load local var i
 IADD
 PUTFIELD 0
 L2:
+LOAD 1 ; Load current value of i for post increment
+DUP
+PUSH 1
+IADD
+STORE 1 ; Post increment
 L0:
 LOAD 1  ; Load local var i
 PUSH 10
@@ -56,7 +60,7 @@ L3:
 RET
 .endmethod
 
-.method TestClass@int@constructor
+.method TestClass.TestClass@int
 .limit stack 4
 .limit locals 2
 LOAD_ARG 0 ; 'this' for assignment to member 'publicVar'
@@ -71,7 +75,6 @@ RET
 LOAD_ARG 0 ; 'this' for assignment to member 'anotherVar'
 PUSH 20
 PUTFIELD 1
-RET
 .endmethod
 
 .method AnotherClass.publicMethod
@@ -80,7 +83,6 @@ RET
 LOAD_ARG 0 ; 'this' for assignment to member 'anotherVar'
 PUSH 15
 PUTFIELD 1
-RET
 .endmethod
 
 .method AnotherClass.publicMethod@int@int
@@ -91,10 +93,9 @@ LOAD_ARG 1  ; Load parameter 'x'
 LOAD_ARG 2  ; Load parameter 'y'
 IADD
 PUTFIELD 1
-RET
 .endmethod
 
-.method AnotherClass@constructor
+.method AnotherClass.AnotherClass
 .limit stack 4
 .limit locals 3
 PUSH 0
@@ -110,6 +111,11 @@ LOAD 2  ; Load local var j
 IADD
 PUTFIELD 1
 L6:
+LOAD 2 ; Load current value of j for post increment
+DUP
+PUSH 1
+IADD
+STORE 2 ; Post increment
 L4:
 LOAD 2  ; Load local var j
 PUSH 5
@@ -165,6 +171,11 @@ L14:
 PUSH 0
 STORE 7 ; Init c1
 L10:
+LOAD 6 ; Load current value of k for post increment
+DUP
+PUSH 1
+IADD
+STORE 6 ; Post increment
 L8:
 LOAD 6  ; Load local var k
 PUSH 3

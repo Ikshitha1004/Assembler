@@ -368,23 +368,7 @@ void Parser::parse_directive() {
         for (size_t i = 1; i < argTypes.size(); ++i) sig += "," + argTypes[i];
     }
 
-    auto owner = symtab.get_current_class();  // empty if independent method
-    // std::string key = SymbolTable::make_method_key(owner, methodName, sig);
-
-    // Prepare MethodInfo
-    MethodInfo mi;
-    mi.name = methodName;
-    mi.signature = sig;
-    mi.address = symtab.lc();
-    mi.size = 0;
-    mi.stack_limit = 0;
-    mi.locals_limit = 0; 
-    mi.index = std::numeric_limits<uint32_t>::max();
-    // Register method and start tracking
-    bool ok = owner.empty() ? symtab.begin_method(methodName, sig)
-                            : symtab.add_method_metadata(mi) && symtab.begin_method(methodName, sig);
-
-    if (!ok) {
+    if (!symtab.begin_method(methodName, sig)) {
         errlist.push_back("Duplicate method: " + methodName);
         return;
     }
@@ -550,7 +534,7 @@ void Parser::parse_class_metadata() {
             advance();
 
             // signature also inside qualified name 
-            symtab.define_method(class_name, qualified_name, "", 0, 0, 0);
+            symtab.define_method(class_name, qualified_name, "", 0, 0, 0,false);
         }
 
         if (cur().type != TokenType::IDENT || cur().value != "class_end") {

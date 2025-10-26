@@ -43,9 +43,11 @@ struct MethodInfo {
     uint32_t stack_limit;  // from .limit stack
     uint32_t locals_limit; // from .limit locals
     uint32_t index;
+    bool is_defined;  // indicates bytecode has been parsed
+
 
     MethodInfo()
-        : address(0), size(0), stack_limit(0), locals_limit(0), index(UINT32_MAX) {}
+        : address(0), size(0), stack_limit(0), locals_limit(0), index(UINT32_MAX),is_defined(false) {}
 };
 
 // ============================================================================
@@ -153,7 +155,7 @@ public:
     bool end_method();
     bool define_method(const std::string& class_name, const std::string& method_name,
                        const std::string& signature, uint32_t address,
-                       uint32_t stack_limit, uint32_t locals_limit);
+                       uint32_t stack_limit, uint32_t locals_limit,bool is_defined);
     std::pair<bool, MethodInfo> get_method(const std::string& method_key) const;
     std::pair<bool, FieldInfo> get_field(const std::string& field_key) const;
 
@@ -166,9 +168,9 @@ public:
     const std::unordered_map<std::string, MethodInfo>& methods() const { return methods_; }
     const std::unordered_map<std::string, ClassMetadata>& class_metadata() const { return class_metadata_; }
     static std::string make_field_key(const std::string& owner, const std::string& name);
-    static std::string make_method_key(const std::string& owner,
-                                       const std::string& name,
-                                       const std::string& sig);
+    // static std::string make_method_key(const std::string& owner,
+    //                                    const std::string& name,
+    //                                    const std::string& sig);
 
     const std::string& current_class() const { return current_class_; }
     const std::string& current_method_key() const { return current_method_key_; }

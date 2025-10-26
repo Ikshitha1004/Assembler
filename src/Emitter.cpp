@@ -80,7 +80,7 @@ void assembler::writeVMFile(
         // Methods
 writer.write(static_cast<uint32_t>(ci.methods.size()));
 for (const auto& mkey : ci.methods) {
-    std::pair<bool, MethodInfo> result = symtab.get_method(mkey.name + "(" + mkey.signature + ")");
+    std::pair<bool, MethodInfo> result = symtab.get_method(mkey.name);
     if (!result.first) continue;
     const MethodInfo& mi = result.second;
     writer.writeString(mi.name);
