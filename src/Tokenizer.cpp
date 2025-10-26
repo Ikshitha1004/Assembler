@@ -106,9 +106,9 @@ static const std::unordered_set<std::string> SYS_CALL = {
         }
 
         // Identifiers, mnemonics, labels
-        if (std::isalpha((unsigned char)c) || c == '_' || c == '.') {
+        if (std::isalpha((unsigned char)c) || c == '_' || c == '.' || peek() == '@') {
             std::string ident;
-            while (!eof() && (std::isalnum((unsigned char)peek()) || peek() == '_' || peek() == '.'))
+    while (!eof() && (std::isalnum((unsigned char)peek()) || peek() == '_' || peek() == '.' || peek() == '@'))
                 ident.push_back(get());
               // Directives start with '.'
             if (!ident.empty() && ident[0] == '.') {

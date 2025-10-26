@@ -78,7 +78,7 @@ void print_instructions(const std::vector<Instruction> &instrs) {
             break;
 
         case Operand::Kind::ConstPoolIndex:
-            std::cout << " (cp#" << op.pool_index << ")";
+            std::cout << " (cp#" << op.index << ")";
             break;
         
     }
@@ -109,7 +109,7 @@ void print_symbol_table(const SymbolTable& symtab) {
         const auto& f = kv.second;
         std::cout << "  " << f.owner_class << "." << f.name
                   << " : " << f.descriptor
-                  << "  pool=" << (f.pool_index == UINT32_MAX ? -1 : (int)f.pool_index)
+                  << "  pool=" << (f.index == UINT32_MAX ? -1 : (int)f.index)
                   << "\n";
     }
 
@@ -124,11 +124,11 @@ void print_symbol_table(const SymbolTable& symtab) {
     }
 
     std::cout << "\n[classes]\n";
-    for (const auto& kv : symtab.classes()) {
+    for (const auto& kv : symtab.class_metadata()) {
         const auto& c = kv.second;
         std::cout << "  .class " << c.name
                   << "  .super " << c.super_name
-                  << "  pool=" << (c.pool_index == UINT32_MAX ? -1 : (int)c.pool_index)
+                  << "  pool=" << (c.index == UINT32_MAX ? -1 : (int)c.index)
                   << "\n";
         if (!c.fields.empty()) {
             std::cout << "    fields:";
@@ -140,7 +140,7 @@ void print_symbol_table(const SymbolTable& symtab) {
         if (!c.methods.empty()) {
             std::cout << "    methods:";
             for (const auto& mk : c.methods) {
-                std::cout << " " << mk;
+                std::cout << " " << mk.name;
             }
             std::cout << "\n";
         }

@@ -47,7 +47,7 @@ void assembler::writeVMFile(
     // --- Write class metadata ---
     size_t classMetaStart = writer.data().size();
 
-    const auto& classes = symtab.classes();
+    const auto& classes = symtab.class_metadata();
     writer.write(static_cast<uint32_t>(classes.size()));
 
     uint32_t mainOffset = 0;
@@ -74,14 +74,13 @@ void assembler::writeVMFile(
         writer.write(static_cast<uint32_t>(ci.fields.size()));
         for (const auto& f : ci.fields) {
             writer.writeString(f.name);
-            writer.write(f.pool_index);
+            writer.write(f.index);
         }
 
         // Methods
-        // Methods
 writer.write(static_cast<uint32_t>(ci.methods.size()));
 for (const auto& mkey : ci.methods) {
-    std::pair<bool, MethodInfo> result = symtab.get_method(mkey);
+    std::pair<bool, MethodInfo> result = symtab.get_method(mkey.name + "(" + mkey.signature + ")");
     if (!result.first) continue;
     const MethodInfo& mi = result.second;
     writer.writeString(mi.name);

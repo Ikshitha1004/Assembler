@@ -29,14 +29,14 @@ bool Parser::accept(TokenType t) {
     return false;
 }
 
-bool Parser::expect(TokenType t) {
-    if (accept(t)) return true;
-    std::ostringstream os;
-    os << "Parse error: expected token at line " << cur().line
-       << ", col " << cur().col;
-    errlist.push_back(os.str());
-    return false;
-}
+// bool Parser::expect(TokenType t) {
+//     if (accept(t)) return true;
+//     std::ostringstream os;
+//     os << "Parse error: expected token at line " << cur().line
+//        << ", col " << cur().col;
+//     errlist.push_back(os.str());
+//     return false;
+// }
 
 // Checks if it's a valid integer literal (e.g. 42, -3)
 static bool is_int_literal(const std::string& s) {
@@ -105,12 +105,12 @@ void Parser::parse_operands(Instruction &ins) {
         std::string owner = symtab.get_current_class();
 
         // Construct method key like "Class.add(int,int)" or "add(int,int)"
-        std::string key = SymbolTable::make_method_key(owner, methodName, sig);
+        // std::string key = SymbolTable::make_method_key(owner, methodName, sig);
 
         // Push operand as label (method reference)
         Operand op;
         op.kind = Operand::Kind::Label;
-        op.label = key;
+        op.label = methodName;
         ins.operands.push_back(op);
 
         return;
@@ -258,13 +258,13 @@ void Parser::parse_directive() {
     advance();
     if (dir == ".data") {
         symtab.begin_data();
-    }
+    } 
     else if (dir == ".code") {
         symtab.begin_text();
-    }
-
-    
-
+    } 
+    else if (dir == ".class_metadata") {
+        parse_class_metadata(); // assume this parses class metadata block
+    } 
     else if (dir == ".word") {
         if (cur().type != TokenType::IDENT) {
             errlist.push_back("Expected label before .word at line " + std::to_string(line));
@@ -274,61 +274,57 @@ void Parser::parse_directive() {
         advance();
 
         if (cur().type != TokenType::NUMBER) {
-            errlist.push_back("Expected numbers after .word " + name);
+            errlist.push_back("Expected number after .word " + name);
             return;
         }
 
         std::vector<Value> vals;
-while (cur().type == TokenType::NUMBER) {
-    const std::string &numStr = cur().value;
-    if (numStr.find('.') != std::string::npos)
-        vals.push_back(Value(std::stof(numStr)));
-    else
-        vals.push_back(Value(std::stoi(numStr)));
-    advance();
-    if (cur().type == TokenType::COMMA) advance();
-}
+        while (cur().type == TokenType::NUMBER) {
+            const std::string &numStr = cur().value;
+            if (numStr.find('.') != std::string::npos)
+                vals.push_back(Value(std::stof(numStr)));
+            else
+                vals.push_back(Value(std::stoi(numStr)));
+            advance();
+            if (cur().type == TokenType::COMMA) advance();
+        }
 
         if (!symtab.define_data_symbol(name, vals)) {
             errlist.push_back("Duplicate or invalid data symbol: " + name);
         }
-    }
-        else if (dir == ".endclass") {
-            if (!symtab.end_class()) {
-                errlist.push_back("'.endclass' without active class at line " + std::to_string(line));
-            }
+    } 
+    else if (dir == ".endclass") {
+        if (!symtab.end_class_metadata()) {
+            errlist.push_back("'.endclass' without active class at line " + std::to_string(line));
         }
-        else if (dir == ".endmethod") {
-            // uint32_t methodSize = symtab.lc() - methodStartOffset;
-            // symtab.set_method_size(methodName, methodSize);
-
-            if (!symtab.end_method()) {
-                errlist.push_back("'.endmethod' without active method at line " + std::to_string(line));
-            }
+    } 
+    else if (dir == ".endmethod") {
+        if (!symtab.end_method()) {
+            errlist.push_back("'.endmethod' without active method at line " + std::to_string(line));
         }
-
-    else  if (dir == ".class") {
+    } 
+    else if (dir == ".class") {
         if (cur().type != TokenType::IDENT) {
             errlist.push_back("Expected class name after .class");
             return;
         }
         std::string className = cur().value;
-        if (!symtab.begin_class(className)) {
+        if (!symtab.begin_class_metadata(className)) {
             errlist.push_back("Duplicate or invalid class: " + className);
         }
         advance();
-    }
+    } 
     else if (dir == ".super") {
         if (cur().type != TokenType::IDENT) {
             errlist.push_back("Expected superclass name after .super");
             return;
         }
         std::string superName = cur().value;
-        if (!symtab.set_super(superName)) {
+        if (!symtab.set_class_super(superName)) {
             errlist.push_back("Failed to set superclass: " + superName);
         }
         advance();
-    }
+    } 
     else if (dir == ".field") {
         if (cur().type != TokenType::IDENT) {
             errlist.push_back("Expected field name after .field");
@@ -341,26 +337,24 @@ while (cur().type == TokenType::NUMBER) {
             return;
         }
         std::string descriptor = cur().value;
-        // pool_index unknown here, set to max()
-        if (!symtab.add_field(symtab.current_class(), fieldName, descriptor,
-                              std::numeric_limits<uint32_t>::max())) {
+        advance();
+
+        FieldInfo fi{symtab.get_current_class(), fieldName, descriptor, std::numeric_limits<uint32_t>::max()};
+        if (!symtab.add_field_metadata(fi)) {
             errlist.push_back("Duplicate field: " + fieldName);
         }
-        advance();
-    }
-
-
- else if (dir == ".method") {
+    } 
+    else if (dir == ".method") {
     if (cur().type != TokenType::IDENT) {
         errlist.push_back("Expected method name after .method");
         return;
     }
 
-    // First IDENT is method name
     std::string methodName = cur().value;
+    std::cout << "Parsing method: " << methodName << std::endl;
     advance();
 
-    // Collect subsequent IDENT tokens as argument types
+    // Collect argument types
     std::vector<std::string> argTypes;
     while (cur().type == TokenType::IDENT) {
         argTypes.push_back(cur().value);
@@ -369,25 +363,32 @@ while (cur().type == TokenType::NUMBER) {
 
     // Build signature string
     std::string sig;
-    for (size_t i = 0; i < argTypes.size(); ++i) {
-        sig += argTypes[i];
-        if (i != argTypes.size() - 1) sig += ",";
+    if (!argTypes.empty()) {
+        sig = argTypes[0];
+        for (size_t i = 1; i < argTypes.size(); ++i) sig += "," + argTypes[i];
     }
 
-    auto owner = symtab.get_current_class();
-    std::string key = SymbolTable::make_method_key(owner, methodName, sig);
+    auto owner = symtab.get_current_class();  // empty if independent method
+    // std::string key = SymbolTable::make_method_key(owner, methodName, sig);
 
-    // Register method
-    if (!symtab.begin_method(methodName, sig)) {
-        errlist.push_back("Duplicate method: " + key);
+    // Prepare MethodInfo
+    MethodInfo mi;
+    mi.name = methodName;
+    mi.signature = sig;
+    mi.address = symtab.lc();
+    mi.size = 0;
+    mi.stack_limit = 0;
+    mi.locals_limit = 0; 
+    mi.index = std::numeric_limits<uint32_t>::max();
+    // Register method and start tracking
+    bool ok = owner.empty() ? symtab.begin_method(methodName, sig)
+                            : symtab.add_method_metadata(mi) && symtab.begin_method(methodName, sig);
+
+    if (!ok) {
+        errlist.push_back("Duplicate method: " + methodName);
         return;
     }
-
-    // Set method start address
-    symtab.set_method_address(symtab.lc());
 }
-
-
     else if (dir == ".limit") {
         if (cur().type != TokenType::IDENT) {
             errlist.push_back("Expected 'stack' or 'locals' after .limit");
@@ -410,16 +411,14 @@ while (cur().type == TokenType::NUMBER) {
             errlist.push_back("Unknown limit kind: " + kind);
         }
         advance();
-    }
-   
+    } 
     else if (dir == ".end") {
-        // end method or class depending on context
         if (!symtab.end_method()) {
-            if (!symtab.end_class()) {
+            if (!symtab.end_class_metadata()) {
                 errlist.push_back("'.end' without active method or class");
             }
         }
-    }
+    } 
     else if (dir == ".const") {
         if (cur().type != TokenType::IDENT) {
             errlist.push_back("Expected constant name after .const");
@@ -436,11 +435,138 @@ while (cur().type == TokenType::NUMBER) {
             errlist.push_back("Duplicate constant: " + constName);
         }
         advance();
-    }
+    } 
     else {
-        errlist.push_back("Unknown directive '" + dir + "' at line " +
-                          std::to_string(line));
+        errlist.push_back("Unknown directive '" + dir + "' at line " + std::to_string(line));
     }
+}
+
+
+void Parser::parse_class_metadata() {
+    // Current token is `.class_metadata`
+
+    // class_count
+    if (cur().type != TokenType::IDENT || cur().value != "class_count") {
+        errlist.push_back("Expected 'class_count' after .class_metadata");
+        return;
+    }
+    advance(); // consume 'class_count'
+
+    if (cur().type != TokenType::NUMBER) {
+        errlist.push_back("Expected number after 'class_count'");
+        return;
+    }
+    int class_count = std::stoi(cur().value);
+    advance(); // consume number
+
+    for (int i = 0; i < class_count; ++i) {
+        // class_begin
+        if (cur().type != TokenType::IDENT || cur().value != "class_begin") {
+            errlist.push_back("Expected 'class_begin' in metadata");
+            return;
+        }
+        advance(); // consume 'class_begin'
+
+        // class name
+        if (cur().type != TokenType::IDENT) {
+            errlist.push_back("Expected class name after 'class_begin'");
+            return;
+        }
+        std::string class_name = cur().value;
+        advance();
+
+        // super index
+        if (cur().type != TokenType::NUMBER) {
+            errlist.push_back("Expected super class index after class name");
+            return;
+        }
+        int super_idx = std::stoi(cur().value);
+        advance();
+
+        if (!symtab.begin_class_metadata(class_name)) {
+            errlist.push_back("Duplicate class: " + class_name);
+        }
+
+        // --- Fields ---
+        if (cur().type != TokenType::IDENT || cur().value != "field_count") {
+            errlist.push_back("Expected 'field_count'");
+            return;
+        }
+        advance();
+
+        if (cur().type != TokenType::NUMBER) {
+            errlist.push_back("Expected number after 'field_count'");
+            return;
+        }
+        int field_count = std::stoi(cur().value);
+        advance();
+
+        for (int f = 0; f < field_count; ++f) {
+            if (cur().type != TokenType::IDENT || cur().value != "field") {
+                errlist.push_back("Expected 'field' declaration");
+                return;
+            }
+            advance();
+
+            if (cur().type != TokenType::IDENT) { errlist.push_back("Expected field name"); return; }
+            std::string field_name = cur().value;
+            advance();
+
+            if (cur().type != TokenType::IDENT) { errlist.push_back("Expected field type"); return; }
+            std::string field_type = cur().value;
+            advance();
+
+            if (cur().type != TokenType::NUMBER) { errlist.push_back("Expected field pool index"); return; }
+            uint32_t index = std::stoi(cur().value);
+            advance();
+
+            symtab.add_field(class_name, field_name, field_type, index);
+        }
+
+        // --- Methods ---
+        if (cur().type != TokenType::IDENT || cur().value != "method_count") {
+            errlist.push_back("Expected 'method_count'");
+            return;
+        }
+        advance();
+
+        if (cur().type != TokenType::NUMBER) { errlist.push_back("Expected number after 'method_count'"); return; }
+        int method_count = std::stoi(cur().value);
+        advance();
+
+        for (int m = 0; m < method_count; ++m) {
+            if (cur().type != TokenType::IDENT || cur().value != "method") {
+                errlist.push_back("Expected 'method' declaration");
+                return;
+            }
+            advance();
+
+            if (cur().type != TokenType::IDENT) { errlist.push_back("Expected method name"); return; }
+            std::string method_name = cur().value;
+            advance();
+
+            if (cur().type != TokenType::IDENT) { errlist.push_back("Expected qualified method"); return; }
+            std::string qualified_name = cur().value; 
+            advance();
+
+            // signature also inside qualified name 
+            symtab.define_method(class_name, qualified_name, "", 0, 0, 0);
+        }
+
+        if (cur().type != TokenType::IDENT || cur().value != "class_end") {
+            errlist.push_back("Expected 'class_end'");
+            return;
+        }
+        advance();
+        symtab.end_class_metadata();
+    }
+
+    // .end_metadata
+    if (cur().type != TokenType::DIRECTIVE || cur().value != ".end_metadata") {
+        errlist.push_back("Expected '.end_metadata'");
+        return;
+    }
+    advance();
 }
 
 
@@ -483,116 +609,78 @@ void Parser::parse_line() {
         advance(); // consume mnemonic
 
         Operand op;
+        if (oc == OpCode::NEW) {
+            if (cur().type != TokenType::IDENT) {
+               errlist.push_back("Expected class name after NEW");
+            }
 
-        // --- NEW ---
-        // if (oc == OpCode::NEW) {
-        //     if (cur().type != TokenType::IDENT) {
-        //         errlist.push_back("Expected class name after NEW");
-        //     } else {
-        //         std::string clsName = cur().value;
-        //         advance();
-        //         int poolIdx = constpool.add_class(clsName);
+            std::string className = cur().value;
+            advance();
 
-        //         op.kind = Operand::Kind::ConstPoolIndex;
-        //         op.pool_index = poolIdx;
-        //         ins.operands.push_back(op);
-        //     }
-        // }
-        // // --- GETFIELD / PUTFIELD ---
-        // else if (oc == OpCode::GETFIELD || oc == OpCode::PUTFIELD) {
-        //     if (cur().type != TokenType::IDENT) {
-        //         errlist.push_back("Expected field reference Class.field after GETFIELD/PUTFIELD");
-        //     } else {
-        //         std::string fullIdent = cur().value;
-        //         advance();
+            auto [found, meta] = symtab.get_class_metadata(className);
 
-        //         auto dotPos = fullIdent.find('.');
-        //         if (dotPos == std::string::npos) {
-        //             errlist.push_back("Malformed field reference, expected Class.field");
-        //         } else {
-        //             std::string clazz = fullIdent.substr(0, dotPos);
-        //             std::string fieldName = fullIdent.substr(dotPos + 1);
+            Operand op;
+            op.kind = Operand::Kind::Label;  // label points to a class name
+            op.label = className;             // store class name as label
 
-        //             auto p_field = symtab.get_field(SymbolTable::make_field_key(clazz, fieldName));
-        //             bool found_field = p_field.first;
-        //             const FieldInfo &finfo = p_field.second;
+            if (found) {
+                symtab.set_current_class(className);
+            } else {
+                symtab.add_reference(instrs.size(), 0, className,
+                                    ins.src_line, ins.src_col,2);  // false = not a method
+            }
 
-        //             if (!found_field) {
-        //                 errlist.push_back("Undefined field reference: " + clazz + "." + fieldName);
-        //             }
-
-        //             op.kind = Operand::Kind::ConstPoolIndex;
-        //             op.pool_index = finfo.pool_index;
-        //             ins.operands.push_back(op);
-        //         }
-        //     }
-        // }
-        
-        // --- INVOKEVIRTUAL / INVOKESPECIAL / CALL ---
-        // else if (oc == OpCode::INVOKEVIRTUAL || oc == OpCode::INVOKESPECIAL) {
-        //     if (cur().type != TokenType::IDENT) {
-        //         errlist.push_back("Expected method reference Class.method after INVOKE");
-        //     } else {
-        //         std::string fullIdent = cur().value;
-        //         advance();
-
-        //         auto dotPos = fullIdent.find('.');
-        //         if (dotPos == std::string::npos) {
-        //             errlist.push_back("Malformed method reference, expected Class.method");
-        //         } else {
-        //             std::string clazz = fullIdent.substr(0, dotPos);
-        //             std::string methodName = fullIdent.substr(dotPos + 1);
-
-        //             auto p_method = symtab.get_method(methodName); // adjust key if needed
-        //             bool found_method = p_method.first;
-        //             const MethodInfo &minfo = p_method.second;
-
-        //             if (!found_method) {
-        //                 errlist.push_back("Undefined method reference: " + clazz + "." + methodName);
-        //             }
-
-        //             op.kind = Operand::Kind::ConstPoolIndex;
-        //             op.pool_index = minfo.pool_index;
-        //             ins.operands.push_back(op);
-        //         }
-        //     }
-        // }
+            ins.operands.push_back(op);
+        }
+       
     if (oc == OpCode::GETFIELD || oc == OpCode::PUTFIELD) {
     Operand op;
 
-    if (cur().type != TokenType::IDENT) {
-        errlist.push_back("Expected field reference after GETFIELD/PUTFIELD");
+    if (cur().type != TokenType::NUMBER) {
+        errlist.push_back("Expected numeric field index after GETFIELD/PUTFIELD");
     } else {
-        std::string fullIdent = cur().value; 
-        advance();
-
-        // Split at '.' into class and field
-        auto dotPos = fullIdent.find('.');
-        if (dotPos == std::string::npos) {
-            errlist.push_back("Malformed field reference, need ClassName.fieldName");
-        } else {
-            std::string clazz     = fullIdent.substr(0, dotPos);
-            std::string fieldName = fullIdent.substr(dotPos + 1);
-
-            // Build key for symbol table
-            std::string key = SymbolTable::make_field_key(clazz, fieldName);
-
-            // Lookup or auto-register
-            auto p= symtab.get_field(key);
-            bool found = p.first;
-            const FieldInfo& fieldInfo = p.second;
-            if (!found) {
-                errlist.push_back("Undefined field reference: " + key);
+        
+            int fieldIndex = std::stoi(cur().value);
+            op.kind = Operand::Kind::Immediate; // direct integer operand
+            op.val = Value(fieldIndex);
+            auto [found, clsMeta] = symtab.get_class_metadata(symtab.get_current_class());
+            if (found && fieldIndex >= clsMeta.fields.size()) {
+                errlist.push_back("Invalid field index for class " + clsMeta.name);
             }
-
-            // Encode operand
-           op.kind = Operand::Kind::ConstPoolIndex;
-           op.pool_index = fieldInfo.pool_index;
-        }
+        advance();
     }
 
     ins.operands.push_back(op);
+}
+if (oc == OpCode::INVOKEVIRTUAL || oc == OpCode::INVOKESPECIAL) {
+    Operand op;
+
+    // Expect a numeric method index
+    if (cur().type != TokenType::NUMBER) {
+        errlist.push_back("Expected numeric method index after INVOKEVIRTUAL/INVOKESPECIAL");
+    } else {
+        int methodIndex = std::stoi(cur().value);
+        op.kind = Operand::Kind::Immediate;
+        op.val = Value(methodIndex); // store index as immediate
+
+        // Validate index against current class
+        auto [found, clsMeta] = symtab.get_class_metadata(symtab.get_current_class());
+        if (found) {
+            if (methodIndex < 0 || methodIndex >= clsMeta.methods.size()) {
+                errlist.push_back("Invalid method index " + std::to_string(methodIndex) +
+                                  " for class " + clsMeta.name);
+            }
+        } else {
+            errlist.push_back("Current class metadata not found for validation");
+        }
+
+        advance(); // consume the number
     }
+
+    ins.operands.push_back(op);
+}
+
+
     else if (oc == OpCode::SYS_CALL) {
         Operand op;
 
@@ -632,30 +720,6 @@ void Parser::parse_line() {
                         }
                         break;
                     }
-                    case OpCode::INVOKESPECIAL:
-                    case OpCode::INVOKEVIRTUAL:
-                    {
-                    const Operand& op = ins.operands[0];
-                    if (op.kind == Operand::Kind::Label && !is_int_literal(op.label)  && !is_float_literal(op.label)) {
-                        std::cout<<"Method call to label: " << op.label << " at line " << ins.src_line << "\n";
-                        auto p= symtab.get_method(op.label);
-                        bool found = p.first;
-                        std::cout<<"Method found: " << found << "\n";
-                        const MethodInfo& methodInfo = p.second;
-                        if (found) {
-                            // Replace label operand with an immediate numeric one
-                            Operand newOp;
-                            newOp.kind = Operand::Kind::Immediate;
-                            //pu tin immediate
-                            newOp.val =(int) methodInfo.address;
-                            ins.operands[0] = newOp;
-                        } else {
-                            std::cerr << "Error: undefined method " << op.label
-                                    << " at line " << ins.src_line << "\n";
-                        }
-                    }
-                    break;
-                    }
                      case OpCode::CALL:
                     {
        
@@ -679,8 +743,7 @@ void Parser::parse_line() {
                             ins.operands[0] = newOp;
                         } else {
                             symtab.add_reference(instrs.size(), 0, label,
-                               ins.src_line, ins.src_col,
-                               true);
+                               ins.src_line, ins.src_col,1);
                             newOp.val = 0;
                             ins.operands[0] = newOp;
                             //std::cout<<"Adding pending reference for method: " << op.label << "\n";

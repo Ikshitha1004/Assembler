@@ -51,7 +51,7 @@ IRBuilder::Report IRBuilder::build(const std::vector<Instruction>& program) {
                 }
 
                 case Operand::Kind::ConstPoolIndex:
-                    w.imm.push_back(op.pool_index);
+                    w.imm.push_back(op.index);
                     break;
 
                 case Operand::Kind::MethodRef:

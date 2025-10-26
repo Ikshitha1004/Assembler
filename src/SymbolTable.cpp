@@ -31,7 +31,7 @@ void SymbolTable::add_reference(std::size_t instr_index,
                                 std::size_t operand_index,
                                 const std::string& label,
                                 int line, int col,
-                                bool is_method) {
+                                int is_method) {
     PendingRef pr;
     pr.instr_index = instr_index;
     pr.operand_index = operand_index;
@@ -64,7 +64,7 @@ bool SymbolTable::begin_class_metadata(const std::string& class_name) {
     if (class_metadata_.find(class_name) != class_metadata_.end()) return false;
     ClassMetadata cm;
     cm.name = class_name;
-    cm.pool_index = UINT32_MAX;
+    cm.index = UINT32_MAX;
     class_metadata_[class_name] = cm;
     current_class_meta_ = &class_metadata_[class_name];
     current_class_ = class_name;
@@ -110,8 +110,8 @@ std::pair<bool, ClassMetadata> SymbolTable::get_class_metadata(const std::string
 bool SymbolTable::add_field(const std::string& owner_class,
                             const std::string& field_name,
                             const std::string& descriptor,
-                            uint32_t pool_index) {
-    FieldInfo fi{owner_class, field_name, descriptor, pool_index};
+                            uint32_t index) {
+    FieldInfo fi{owner_class, field_name, descriptor, index};
     std::string key = make_field_key(owner_class, field_name);
     if (fields_.find(key) != fields_.end()) return false;
 
@@ -120,6 +120,9 @@ bool SymbolTable::add_field(const std::string& owner_class,
     auto it = class_metadata_.find(owner_class);
     if (it != class_metadata_.end()) {
         it->second.fields.push_back(fi);
+    }
+    else {
+        std::cerr << "Warning: Field added to unknown class " << owner_class << "\n";
     }
     return true;
 }
@@ -137,7 +140,7 @@ bool SymbolTable::begin_method(const std::string& method_name, const std::string
     mi.size = 0;
     mi.stack_limit = 0;
     mi.locals_limit = 0;
-    mi.pool_index = UINT32_MAX;
+    mi.index = UINT32_MAX;
 
     methods_[key] = mi;
 
@@ -193,8 +196,8 @@ bool SymbolTable::define_method(const std::string& class_name,
                                 uint32_t address,
                                 uint32_t stack_limit,
                                 uint32_t locals_limit) {
-    std::string key = make_method_key(class_name, method_name, signature);
-    if (methods_.find(key) != methods_.end()) return false;
+    // std::string key = make_method_key(class_name, method_name, signature);
+    if (methods_.find(method_name) != methods_.end()) return false;
 
     MethodInfo mi;
     mi.name = method_name;
@@ -203,9 +206,8 @@ bool SymbolTable::define_method(const std::string& class_name,
     mi.size = 0;
     mi.stack_limit = stack_limit;
     mi.locals_limit = locals_limit;
-    mi.pool_index = UINT32_MAX;
-
-    methods_[key] = mi;
+    mi.index = UINT32_MAX;
+    methods_[method_name] = mi;
 
     if (!class_name.empty()) {
         auto cit = class_metadata_.find(class_name);
@@ -215,6 +217,7 @@ bool SymbolTable::define_method(const std::string& class_name,
 
     return true;
 }
+
 
 std::pair<bool, MethodInfo> SymbolTable::get_method(const std::string& method_key) const {
     auto it = methods_.find(method_key);

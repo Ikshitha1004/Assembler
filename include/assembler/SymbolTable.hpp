@@ -32,7 +32,7 @@ struct FieldInfo {
     std::string owner_class;
     std::string name;
     std::string descriptor;
-    uint32_t pool_index;
+    uint32_t index;
 };
 
 struct MethodInfo {
@@ -42,10 +42,10 @@ struct MethodInfo {
     uint32_t size;         // size of the method in bytes
     uint32_t stack_limit;  // from .limit stack
     uint32_t locals_limit; // from .limit locals
-    uint32_t pool_index;
+    uint32_t index;
 
     MethodInfo()
-        : address(0), size(0), stack_limit(0), locals_limit(0), pool_index(UINT32_MAX) {}
+        : address(0), size(0), stack_limit(0), locals_limit(0), index(UINT32_MAX) {}
 };
 
 // ============================================================================
@@ -57,9 +57,9 @@ struct ClassMetadata {
     std::string super_name;
     std::vector<FieldInfo> fields;
     std::vector<MethodInfo> methods; // nested MethodInfo for easier linker updates
-    uint32_t pool_index;
+    uint32_t index;
 
-    ClassMetadata() : pool_index(UINT32_MAX) {}
+    ClassMetadata() : index(UINT32_MAX) {}
 };
 
 // ============================================================================
@@ -76,7 +76,7 @@ struct PendingRef {
     Section section;
     bool resolved = false;
     std::string target_file;
-    bool is_method_ref = false;
+    int is_method_ref = 0; //0 for label,1 for method,2 for class
 };
 
 struct RelocationEntry {
@@ -119,7 +119,7 @@ public:
     // Pending control-flow references
     // ------------------------------------------------------------------------
     void add_reference(std::size_t instr_index, std::size_t operand_index,
-                       const std::string& label, int line, int col, bool is_method=false);
+                       const std::string& label, int line, int col, int is_method=0);
     std::vector<PendingRef>& pending_refs() { return pending_refs_; }
     const std::vector<PendingRef>& pending_refs() const { return pending_refs_; }
     std::vector<RelocationEntry> generate_relocation_table() const;
@@ -134,9 +134,10 @@ public:
     // Classes / Class metadata
     // ------------------------------------------------------------------------
     bool add_field(const std::string& owner_class, const std::string& field_name,
-                   const std::string& descriptor, uint32_t pool_index = UINT32_MAX);
+                   const std::string& descriptor, uint32_t index = UINT32_MAX);
     bool begin_class_metadata(const std::string& class_name);
     bool set_class_super(const std::string& super_name);
+    void set_current_class(const std::string& class_name) { current_class_ = class_name; }
     bool add_field_metadata(const FieldInfo& field);
     bool add_method_metadata(const MethodInfo& method);
     bool end_class_metadata();
@@ -164,7 +165,6 @@ public:
     const std::unordered_map<std::string, FieldInfo>& fields() const { return fields_; }
     const std::unordered_map<std::string, MethodInfo>& methods() const { return methods_; }
     const std::unordered_map<std::string, ClassMetadata>& class_metadata() const { return class_metadata_; }
-
     static std::string make_field_key(const std::string& owner, const std::string& name);
     static std::string make_method_key(const std::string& owner,
                                        const std::string& name,

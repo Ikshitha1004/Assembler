@@ -41,6 +41,7 @@ private:
     void parse_line();
     void parse_operands(Instruction &ins);
     void parse_directive();
+    void parse_class_metadata();
     void validate_instruction(const Instruction &ins);
 };
 

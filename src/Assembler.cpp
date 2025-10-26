@@ -51,7 +51,7 @@ bool Assembler::assemble(const std::string& inputFile, const std::string& output
                   << " locals=" << kv.second.locals_limit
                   << "\n";
     }
-    for (auto &kv : symtab.classes()) {
+    for (auto &kv : symtab.class_metadata()) {
         std::cout << "Class " << kv.first
                   << " super=" << kv.second.super_name << "\n";
     }

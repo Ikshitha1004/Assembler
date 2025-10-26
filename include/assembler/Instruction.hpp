@@ -120,7 +120,7 @@ struct Operand {
     Kind kind {Kind::Immediate};
     int reg = -1;
     Value val;
-    int pool_index = -1;
+    int index = -1;
     std::string label;
     struct { std::string clazz, name, desc; } fieldref;
 };
