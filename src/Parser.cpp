@@ -601,15 +601,21 @@ void Parser::parse_line() {
             std::string className = cur().value;
             advance();
 
-            auto [found, meta] = symtab.get_class_metadata(className);
+            auto p = symtab.get_class_metadata(className);
+            bool found = p.first;
+            const ClassMetadata& clsMeta = p.second;
 
-            Operand op;
-            op.kind = Operand::Kind::Label;  // label points to a class name
-            op.label = className;             // store class name as label
-
+                        // store class name as label
+             Operand op;
             if (found) {
+               
+                op.kind = Operand::Kind::Immediate;  // label points to a class name
+                op.val = Value((int)clsMeta.index); 
                 symtab.set_current_class(className);
             } else {
+                
+                op.kind = Operand::Kind::Label;  // label points to a class name
+                op.label = className; 
                 symtab.add_reference(instrs.size(), 0, className,
                                     ins.src_line, ins.src_col,2);  // false = not a method
             }
@@ -627,7 +633,9 @@ void Parser::parse_line() {
             int fieldIndex = std::stoi(cur().value);
             op.kind = Operand::Kind::Immediate; // direct integer operand
             op.val = Value(fieldIndex);
-            auto [found, clsMeta] = symtab.get_class_metadata(symtab.get_current_class());
+            auto p = symtab.get_class_metadata(symtab.get_current_class());
+            bool found = p.first;
+            const ClassMetadata& clsMeta = p.second;
             if (found && fieldIndex >= clsMeta.fields.size()) {
                 errlist.push_back("Invalid field index for class " + clsMeta.name);
             }
@@ -648,15 +656,18 @@ if (oc == OpCode::INVOKEVIRTUAL || oc == OpCode::INVOKESPECIAL) {
         op.val = Value(methodIndex); // store index as immediate
 
         // Validate index against current class
-        auto [found, clsMeta] = symtab.get_class_metadata(symtab.get_current_class());
-        if (found) {
-            if (methodIndex < 0 || methodIndex >= clsMeta.methods.size()) {
-                errlist.push_back("Invalid method index " + std::to_string(methodIndex) +
-                                  " for class " + clsMeta.name);
-            }
-        } else {
-            errlist.push_back("Current class metadata not found for validation");
-        }
+       
+        //  auto p = symtab.get_class_metadata(symtab.get_current_class());
+        //     bool found = p.first;
+        //     const ClassMetadata& clsMeta = p.second;
+        // if (found) {
+        //     if (methodIndex < 0 || methodIndex >= clsMeta.methods.size()) {
+        //         errlist.push_back("Invalid method index " + std::to_string(methodIndex) +
+        //                           " for class " + clsMeta.name);
+        //     }
+        // } else {
+        //     errlist.push_back("Current class metadata not found for validation");
+        // }
 
         advance(); // consume the number
     }
