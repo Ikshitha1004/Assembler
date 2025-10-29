@@ -1,51 +1,32 @@
-; Test 1: Core ISA functionality (arithmetic, stack, memory, branching)
+; Test 3: Array handling
 
-; --- Arithmetic ---
-PUSH 2
-PUSH 3
-IADD            ; stack: 5
-PUSH 4
-IMUL            ; stack: 20
-PUSH 5
-ISUB            ; stack: 15
-INEG            ; stack: -15
-PUSH 3
-IDIV            ; stack: -5
+.class_metadata
+class_count 0
+.end_metadata
+.code
+.method test_newarray
+.limit stack 10
+.limit locals 10
 
-; --- Stack ops ---
-DUP             ; duplicate top
-POP             ; remove one
+; Create INT array of size 3, store in local 0
+; local 0 = reference to new array of size 5
+PUSH 5       ; size of array
+PUSH 0       ; local index to store array reference
+NEWARRAY INT ; VM will pop size & local index, type is encoded
 
-; --- Memory ---
-STORE 0         ; store -5 into local[0]
-LOAD 0          ; load back
+; Create FLOAT array of size 2, store in local 1
+PUSH 1       ; local index
+PUSH 2       ; size
+NEWARRAY FLOAT
 
-; --- Comparison ---
-PUSH 10
-ICMP_EQ         ; compare local[0] with 10
-PUSH 20
-ICMP_LT
-PUSH 1
-ICMP_GT
+; Create OBJECT array of size 1, store in local 2
+PUSH 2       ; local index
+PUSH 1       ; size
+NEWARRAY OBJECT
 
-; --- Control flow ---
-JMP check
-PUSH 111        ; skipped
-check:
-JZ zero_case
-JNZ nonzero_case
-
-zero_case:
-PUSH 999
-JMP end
-
-nonzero_case:
-PUSH 123
-CALL func
-
-func:
-PUSH 7
+; Test: push sizes to stack and return
+LOAD 0       ; load INT array ref
+LOAD 1       ; load FLOAT array ref
+LOAD 2       ; load OBJECT array ref
 RET
-
-end:
-PUSH 42
+.endmethod

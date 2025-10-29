@@ -1,27 +1,37 @@
-.code
-.method test_newarray
-.limit stack 10
-.limit locals 10
+; Test 1: Core ISA functionality (arithmetic,float, stack, memory)
 
-; Create INT array of size 3, store in local 0
-; local 0 = reference to new array of size 5
-PUSH 5       ; size of array
-PUSH 0       ; local index to store array reference
-NEWARRAY INT ; VM will pop size & local index, type is encoded
+.class_metadata
+class_count 0
+.end_metadata
+; --- Arithmetic ---
+PUSH 2
+PUSH 3
+IADD            ; stack: 5
+PUSH 4
+IMUL            ; stack: 20
+PUSH 5
+ISUB            ; stack: 15
+INEG            ; stack: -15
+PUSH 3
+IDIV            ; stack: -5
 
-; Create FLOAT array of size 2, store in local 1
-PUSH 1       ; local index
-PUSH 2       ; size
-NEWARRAY FLOAT
+; Floating arithmetic
+FPUSH 3.14
+FPUSH 2.0
+FMUL          ; 6.28
+FPUSH 1.14
+FADD          ; 7.42
+FPUSH 2.0
+FDIV          ; 3.71
+FNEG          ; -3.71
+FPOP          ; clear stack
 
-; Create OBJECT array of size 1, store in local 2
-PUSH 2       ; local index
-PUSH 1       ; size
-NEWARRAY OBJECT
+; --- Stack ops ---
+DUP             ; duplicate top
+POP             ; remove one
 
-; Test: push sizes to stack and return
-LOAD 0       ; load INT array ref
-LOAD 1       ; load FLOAT array ref
-LOAD 2       ; load OBJECT array ref
-RET
-.endmethod
+; --- Memory ---
+STORE 0         ; store -5 into local[0]
+LOAD 0          ; load back
+
+
