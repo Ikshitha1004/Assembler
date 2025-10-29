@@ -354,21 +354,9 @@ void Parser::parse_directive() {
     std::cout << "Parsing method: " << methodName << std::endl;
     advance();
 
-    // Collect argument types
-    std::vector<std::string> argTypes;
-    while (cur().type == TokenType::IDENT) {
-        argTypes.push_back(cur().value);
-        advance();
-    }
 
-    // Build signature string
-    std::string sig;
-    if (!argTypes.empty()) {
-        sig = argTypes[0];
-        for (size_t i = 1; i < argTypes.size(); ++i) sig += "," + argTypes[i];
-    }
 
-    if (!symtab.begin_method(methodName, sig)) {
+    if (!symtab.begin_method(methodName, "")) {
         errlist.push_back("Duplicate method: " + methodName);
         return;
     }

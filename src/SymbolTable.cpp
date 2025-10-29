@@ -131,6 +131,7 @@ bool SymbolTable::add_field(const std::string& owner_class,
 
 bool SymbolTable::begin_method(const std::string& method_name, const std::string& signature) {
     uint32_t addr = lc_bytes_;  // current code offset
+    std::cout << "Beginning method " << method_name << " at address " << addr << "\n";
     current_method_key_ = method_name;
     return define_method(current_class_, method_name, signature, addr, 0, 0, true);
 }
@@ -156,6 +157,7 @@ bool SymbolTable::set_method_address(uint32_t address) {
     auto it = methods_.find(current_method_key_);
     if (it == methods_.end()) return false;
     it->second.address = address;
+    //std::cout << "Set method " << current_method_key_ << " address to " << address << "\n";
     return true;
 }
 
@@ -163,8 +165,11 @@ bool SymbolTable::end_method() {
     if (current_method_key_.empty()) return false;
 
     MethodInfo &mi = methods_[current_method_key_];
-    if (lc_bytes_ >= mi.address)
+    if (lc_bytes_ >= mi.address){
         mi.size = lc_bytes_ - mi.address;
+        //std::cout<<"Ending method "<<current_method_key_<<" size: "<<mi.size<<"\n";
+        //std::cout<<"lc bytes: "<<lc_bytes_<<" mi.address: "<<mi.address<<" mi.size: "<<mi.size<<"\n";
+    }
     else
         mi.size = 0;
 
@@ -277,7 +282,9 @@ std::vector<RelocationEntry> SymbolTable::generate_relocation_table() const {
     std::vector<RelocationEntry> relos;
     for (const auto &ref : pending_refs_) {
         if (!ref.resolved) {
-            relos.push_back({ref.from_code_offset, ref.label, ref.section});
+            // std::cout<<"Unresolved reference to label '" << ref.label << "' at line "
+            //          << ref.line << ", col " << ref.is_method_ref<< "\n";
+            relos.push_back({ref.from_code_offset, ref.label, ref.section,ref.is_method_ref});
         }
     }
     return relos;

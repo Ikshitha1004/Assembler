@@ -82,9 +82,11 @@ struct PendingRef {
 };
 
 struct RelocationEntry {
+   
     uint32_t offset;          // where to patch
     std::string symbol_name;  // what label/variable
     Section section;          // which section
+     int is_method_ref = 0; // NEW
 };
 
 // ============================================================================
@@ -185,6 +187,9 @@ public:
     // Data symbol management
     bool define_data_symbol(const std::string& name, const std::vector<Value>& values);
     std::pair<bool, std::vector<Value>> get_data_symbol(const std::string& name) const;
+    const std::unordered_map<std::string, ClassMetadata>& classes() const {
+    return class_metadata_;
+}
 
 private:
     uint32_t base_address_;
