@@ -115,6 +115,7 @@ void Linker::addObjectFile(const std::string &path)
         for (uint32_t i = 0; i < methodCount; ++i)
         {
             std::string fullName = read_string_with_len(in);
+            //std::cout << "[ENTRY MOD] Reading method: " << fullName << std::endl;
             std::string shortname = read_string_with_len(in);
             std::string sig = read_string_with_len(in);
             uint32_t addr = read_u32(in);
@@ -145,7 +146,7 @@ void Linker::addObjectFile(const std::string &path)
             {
                 std::string methodName = read_string_with_len(in);
                 uint32_t addr = read_u32(in);
-                cls.methods[methodName] = addr;
+                cls.methods.push_back({methodName,addr});
             }
 
             uint32_t fieldCount = read_u32(in);
@@ -161,7 +162,7 @@ void Linker::addObjectFile(const std::string &path)
                 fi.owner_class = ownerClass;
                 fi.descriptor = descriptor;
                 fi.index = index;
-                cls.fields[fieldName] = fi;
+                cls.fields.push_back({fieldName ,fi});
             }
 
             mod.classes[cls.name] = cls;
@@ -434,7 +435,7 @@ void Linker::buildGlobalSymbolTable()
         }
         for (const auto &kv : m.methods)
         {
-            //std::cout<<"[Linker] Method "<<kv.first<<" BASE addr "<<(kv.second.address)<<"\n";
+            std::cout<<"[Linker] Method gotten"<<kv.first<<" BASE addr "<<(kv.second.address)<<"\n";
             GlobalSymbol gs{m.base_addr + kv.second.address, const_cast<Module *>(&m)};
             global_symbols_[kv.first] = gs;
         }
@@ -443,6 +444,7 @@ void Linker::buildGlobalSymbolTable()
             // const auto &cls = ckv.second;
             // for (const auto &meth : cls.methods)
             // {
+            //     std::cout<<"[Linker] Class Method gotten "<<meth.first<<" BASE addr "<<(meth.second)<<"\n";
             //     GlobalSymbol gs{m.base_addr + meth.second, const_cast<Module *>(&m)};
             //     global_symbols_[meth.first] = gs;
             // }
@@ -520,10 +522,17 @@ void Linker::patchModuleSymbols(Module &m)
     {
         const std::string &clsName = clsPair.first;
         const ClassInfo &cls = clsPair.second;
-
+        auto trim_method_name = [](const std::string &full) -> std::string {
+            size_t dot = full.find('.');
+            if (dot != std::string::npos && dot + 1 < full.size()) {
+                return full.substr(dot + 1);
+            }
+            return full;
+        };
         for (const auto &methPair : cls.methods)
         {
             const std::string &methName = methPair.first;
+            std::string mName =trim_method_name(methName); 
             uint32_t methOffset = methPair.second;
             uint32_t absAddr = m.base_addr + methOffset;
 
@@ -567,14 +576,12 @@ uint32_t get_type_code(const std::string &descriptor)
 
     if (descriptor == "I")
        return (uint32_t) 1;
-    else if (descriptor == "O")
-       return (uint32_t) 2;
     else if (descriptor == "F")
         return (uint32_t) 3;
     else if (descriptor == "C")
        return (uint32_t) 4;
     else
-        return (uint32_t) 0;
+        return (uint32_t) 2;
 }
 void Linker::writeFinalVM(const std::string &outPath,
                           const std::vector<uint8_t> &finalCode,
@@ -622,39 +629,69 @@ void Linker::writeFinalVM(const std::string &outPath,
 
         // Fields
         write_u32(classMetaSection, static_cast<uint32_t>(cls.field_count));
+        //reverse(cls.fields.begin(), cls.fields.end());
+     
+
         for (const auto &fieldPair : cls.fields)
         {
             const std::string &fName = fieldPair.first;
             const FieldInfo &fInfo = fieldPair.second;
             uint8_t ftype = static_cast<uint8_t>(get_type_code(fInfo.descriptor));
 
-            std::cout << "[Linker] Class Field " << fName << " idx " << fInfo.index
-                      << " type " << static_cast<int>(ftype) << "\n";
+            std::cout << "[Linker] Class Field " << fName
+                    << " idx " << fInfo.index
+                    << " type " << static_cast<int>(ftype) << "\n";
 
             if (fName.size() > 255)
                 throw std::runtime_error("Field name too long for metadata");
+
             classMetaSection.push_back(static_cast<uint8_t>(fName.size()));
             classMetaSection.insert(classMetaSection.end(), fName.begin(), fName.end());
 
-            // FIX: write type as single byte, not u32
+            // ✅ write type as single byte instead of u32
             classMetaSection.push_back(ftype);
         }
 
+        
         // Methods
         write_u32(classMetaSection, static_cast<uint32_t>(cls.methods.size()));
-        for (const auto &methPair : cls.methods)
-        {
-            const std::string &mName = methPair.first;
-            uint32_t absOffset = global_symbols_[mName].address;
+        //reverse(cls.methods.begin(), cls.methods.end());
+        // for (const auto &methPair : cls.methods)
+        // {
+        //     const std::string &mName = methPair.first;
+        //     auto it = global_symbols_.find(mName);
+        //     if (it == global_symbols_.end())
+        //         throw std::runtime_error("Method not found for metadata: " + mName);
+        //     uint32_t absOffset = global_symbols_[mName].address;
 
-            std::cout << "[Linker] Class Method " << mName << " addr " << absOffset << "\n";
+        //     std::cout << "[Linker] Class Method " << mName << " addr " << absOffset << "\n";
 
-            if (mName.size() > 255)
-                throw std::runtime_error("Method name too long for metadata");
-            classMetaSection.push_back(static_cast<uint8_t>(mName.size()));
-            classMetaSection.insert(classMetaSection.end(), mName.begin(), mName.end());
-            write_u32(classMetaSection, absOffset);
-        }
+        //     if (mName.size() > 255)
+        //         throw std::runtime_error("Method name too long for metadata");
+        //     classMetaSection.push_back(static_cast<uint8_t>(mName.size()));
+        //     classMetaSection.insert(classMetaSection.end(), mName.begin(), mName.end());
+        //     write_u32(classMetaSection, absOffset);
+        // }
+        // Copy unordered_map elements into a vector so we can control order
+
+    for (const auto &methPair : cls.methods)
+    {
+        const std::string &mName = methPair.first;
+        auto it = global_symbols_.find(mName);
+        if (it == global_symbols_.end())
+            throw std::runtime_error("Method not found for metadata: " + mName);
+
+        uint32_t absOffset = it->second.address;
+
+        std::cout << "[Linker] Class Method " << mName << " addr " << absOffset << "\n";
+
+        if (mName.size() > 255)
+            throw std::runtime_error("Method name too long for metadata");
+
+        classMetaSection.push_back(static_cast<uint8_t>(mName.size()));
+        classMetaSection.insert(classMetaSection.end(), mName.begin(), mName.end());
+        write_u32(classMetaSection, absOffset);
+    }
     }
 
     // ---------------- Header and file write ----------------

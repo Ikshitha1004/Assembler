@@ -6,7 +6,7 @@ field publicVar I 0
 method_count 3
 method publicMethod TestClass.publicMethod
 method TestClass TestClass.TestClass
-method TestClass TestClass.TestClass@int
+method TestClass TestClass.TestClass@I
 class_end
 class_begin AnotherClass TestClass
 field_count 1
@@ -14,22 +14,22 @@ field anotherVar I 0
 method_count 4
 method anotherMethod AnotherClass.anotherMethod
 method publicMethod AnotherClass.publicMethod
-method publicMethod AnotherClass.publicMethod@int@int
+method publicMethod AnotherClass.publicMethod@I@I
 method AnotherClass AnotherClass.AnotherClass
 class_end
 .end_metadata
 
 .code
+
 .method TestClass.publicMethod
 .limit stack 4
 .limit locals 0
 LOAD_ARG 0 ; 'this' for assignment to member 'publicVar'
 PUSH 10
 PUTFIELD 0
-RET
 .endmethod
 
-.method TestClass@constructor
+.method TestClass.TestClass
 .limit stack 4
 .limit locals 2
 PUSH 0
@@ -45,6 +45,11 @@ LOAD 1  ; Load local var i
 IADD
 PUTFIELD 0
 L2:
+LOAD 1 ; Load current value of i for post increment
+DUP
+PUSH 1
+IADD
+STORE 1 ; Post increment
 L0:
 LOAD 1  ; Load local var i
 PUSH 10
@@ -55,7 +60,7 @@ L3:
 RET
 .endmethod
 
-.method TestClass@int@constructor
+.method TestClass.TestClass@I
 .limit stack 4
 .limit locals 2
 LOAD_ARG 0 ; 'this' for assignment to member 'publicVar'
@@ -70,7 +75,6 @@ RET
 LOAD_ARG 0 ; 'this' for assignment to member 'anotherVar'
 PUSH 20
 PUTFIELD 1
-RET
 .endmethod
 
 .method AnotherClass.publicMethod
@@ -79,10 +83,9 @@ RET
 LOAD_ARG 0 ; 'this' for assignment to member 'anotherVar'
 PUSH 15
 PUTFIELD 1
-RET
 .endmethod
 
-.method AnotherClass.publicMethod@int@int
+.method AnotherClass.publicMethod@I@I
 .limit stack 4
 .limit locals 3
 LOAD_ARG 0 ; 'this' for assignment to member 'anotherVar'
@@ -90,10 +93,9 @@ LOAD_ARG 1  ; Load parameter 'x'
 LOAD_ARG 2  ; Load parameter 'y'
 IADD
 PUTFIELD 1
-RET
 .endmethod
 
-.method AnotherClass@constructor
+.method AnotherClass.AnotherClass
 .limit stack 4
 .limit locals 3
 PUSH 0
@@ -109,6 +111,11 @@ LOAD 2  ; Load local var j
 IADD
 PUTFIELD 1
 L6:
+LOAD 2 ; Load current value of j for post increment
+DUP
+PUSH 1
+IADD
+STORE 2 ; Post increment
 L4:
 LOAD 2  ; Load local var j
 PUSH 5

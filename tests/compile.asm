@@ -1,6 +1,5 @@
-
 .code
-.method add
+.method main
 .limit stack 4
 .limit locals 8
 NEW TestClass ; Create new object of class TestClass
@@ -18,9 +17,9 @@ PUTFIELD 0 ; Set field 'publicVar'
 LOAD 3  ; Load local var obj2
 INVOKEVIRTUAL 1 ; Call AnotherClass.publicMethod
 LOAD 3  ; Load local var obj2
-PUSH 20
 PUSH 30
-INVOKEVIRTUAL 2 ; Call AnotherClass.publicMethod@int@int
+PUSH 20
+INVOKEVIRTUAL 2 ; Call AnotherClass.publicMethod@I@I
 PUSH 0
 STORE 5 ; Init d
 PUSH 0
@@ -45,6 +44,11 @@ L14:
 PUSH 0
 STORE 7 ; Init c1
 L10:
+LOAD 6 ; Load current value of k for post increment
+DUP
+PUSH 1
+IADD
+STORE 6 ; Post increment
 L8:
 LOAD 6  ; Load local var k
 PUSH 3
@@ -55,4 +59,3 @@ L11:
 PUSH 0
 RET
 .endmethod
-

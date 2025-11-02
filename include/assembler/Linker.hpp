@@ -16,8 +16,8 @@ struct ClassInfo {
     std::string super_name;
     uint32_t index = UINT32_MAX;
     uint32_t super_index = UINT32_MAX;
-    std::unordered_map<std::string, uint32_t> methods; // methodName -> addr (relative in module until patched)
-    std::unordered_map<std::string, FieldInfo> fields;
+    std::vector<std::pair<std::string, uint32_t>> methods; // methodName -> addr (relative in module until patched)
+    std::vector<std::pair<std::string, FieldInfo>> fields;
     int field_count = 0;
 };
 

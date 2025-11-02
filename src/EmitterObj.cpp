@@ -77,6 +77,7 @@ void writeObjectFile(
 
         write_u32(out, static_cast<uint32_t>(cls.methods.size()));
         for (const MethodInfo &mi : cls.methods) {
+            std::cout<<"[EmitterObj] Writing class method: " << mi.name << " at addr " << mi.address << "\n";
             write_string_with_len(out, mi.name);
             write_u32(out, mi.address);
         }
