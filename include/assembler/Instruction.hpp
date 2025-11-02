@@ -96,7 +96,8 @@ enum class Syscall : uint8_t
 enum class FieldType : uint8_t {
     INT = 1,
     FLOAT = 2,
-    OBJECT = 3
+    OBJECT = 3,
+    CHAR=4
     //add after compiler support-char..
 };
 

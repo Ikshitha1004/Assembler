@@ -28,6 +28,14 @@ bool Parser::accept(TokenType t) {
     if (cur().type == t) { advance(); return true; }
     return false;
 }
+bool Parser::is_valid_lib(const std::string &name)  {
+   
+    for (const auto &lib : known_libs) {
+        if (lib == name) return true;
+    }
+    return false;
+}
+
 
 // bool Parser::expect(TokenType t) {
 //     if (accept(t)) return true;
@@ -129,9 +137,10 @@ void Parser::parse_operands(Instruction &ins) {
             // Support named type like "INT", "FLOAT", "OBJECT"
             std::string typeStr = cur().value;
             int typeVal = -1;
-            if (typeStr == "INT" || typeStr=="int") typeVal = static_cast<int>(FieldType::INT);
-            else if (typeStr == "FLOAT" || typeStr=="float" )typeVal = static_cast<int>(FieldType::FLOAT);
-            else if (typeStr == "OBJECT" || typeStr=="object") typeVal = static_cast<int>(FieldType::OBJECT);
+            if (typeStr == "I" || typeStr=="int") typeVal = static_cast<int>(FieldType::INT);
+            else if (typeStr == "F" || typeStr=="float" )typeVal = static_cast<int>(FieldType::FLOAT);
+            else if (typeStr == "O" || typeStr=="object") typeVal = static_cast<int>(FieldType::OBJECT);
+            else if (typeStr == "C" || typeStr=="char") typeVal = static_cast<int>(FieldType::CHAR);
             else throw std::runtime_error("Invalid type for NEWARRAY: " + typeStr);
 
             op.kind = Operand::Kind::Immediate;
@@ -559,6 +568,20 @@ void Parser::parse_line() {
         parse_directive();
         return;
     }
+    if (cur().type == TokenType::INCLUDE) {
+    advance(); // move past INCLUDE
+    if (cur().type == TokenType::LIBNAME) {
+        if (!is_valid_lib(cur().value)) {
+        std::cerr << "[Parser] Warning: Unknown library '" << cur().value
+                  << "'. It may not be linked." << std::endl;
+    }
+        includes.push_back(cur().value);
+        advance(); // move past LIBNAME
+    } else {
+        std::cerr << "[Parser] Error: expected library filename after #include" << std::endl;
+    }
+}
+
 
     if (cur().type == TokenType::LABEL_DEF) {
         std::string lab = cur().value;

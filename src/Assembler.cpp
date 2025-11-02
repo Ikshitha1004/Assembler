@@ -10,12 +10,14 @@
 
 
 // --- Assemble method ---
-bool Assembler::assemble(const std::string& inputFile, const std::string& outputObjFile) {
+    std::vector<std::string> includedLibs;
+
+std::pair<bool,std::vector<std::string>>Assembler::assemble(const std::string& inputFile, const std::string& outputObjFile) {
     //  Read source
     std::ifstream in(inputFile);
     if (!in.is_open()) {
         std::cerr << "[Assembler] Cannot open " << inputFile << std::endl;
-        return false;
+        return {false,{}};
     }
     std::string src((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
     in.close();
@@ -62,7 +64,7 @@ bool Assembler::assemble(const std::string& inputFile, const std::string& output
         std::cerr << "[Parser] Errors in " << inputFile << ":\n";
         for (const auto &err : parser.errors())
             std::cerr << "  " << err << "\n";
-        return false;
+        return {false,{}};
     }
 
     // Encode instructions → bytecode
@@ -180,5 +182,5 @@ for (auto &w : irrep.words) {
 
     std::cout << "[Assembler] " << inputFile << " → " << outputObjFile << " (" 
               << final_bytes.size() << " bytes)" << std::endl;
-    return true;
+    return {true,parser.includes};
 }

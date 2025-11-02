@@ -15,7 +15,9 @@ enum class TokenType {
     COMMENT,       
     COMMA,        
     DIRECTIVE,     
-    SYS_CALL,      
+    SYS_CALL,   
+    INCLUDE,
+    LIBNAME,
     END_OF_FILE,   
 };
 
@@ -27,8 +29,10 @@ inline const char* tokenTypeToString(TokenType type) {
         case TokenType::LABEL_DEF:  return "LABEL_DEF";
         case TokenType::COMMENT:    return "COMMENT";
         case TokenType::COMMA:      return "COMMA";
+        case TokenType::LIBNAME:    return "LIBNAME";
         case TokenType::DIRECTIVE:  return "DIRECTIVE";
         case TokenType::SYS_CALL:   return "SYS_CALL";
+        case TokenType::INCLUDE:    return "INCLUDE";
         case TokenType::END_OF_FILE:return "END_OF_FILE";
         default:                    return "UNKNOWN";
     }

@@ -64,7 +64,7 @@ std::vector<Token> Tokenizer::tokenize() {
 
 
     "SYS_CALL", // New mnemonic for syscall
-    "NEWARRAY"  // New mnemonic for array creation
+    "NEWARRAY" ,
     "ALOAD",
     "ASTORE"
 };
@@ -107,6 +107,37 @@ static const std::unordered_set<std::string> SYS_CALL = {
             toks.push_back(make(TokenType::COMMENT, val, start_line, start_col));
             continue;
         }
+        // Preprocessor directives like #include
+if (c == '#') {
+    get(); // consume '#'
+    std::string directive;
+    while (!eof() && std::isalpha((unsigned char)peek()))
+        directive.push_back(get());
+
+    std::string up = to_uppercopy(directive);
+    if (up == "INCLUDE") {
+        toks.push_back(make(TokenType::INCLUDE, "#include", start_line, start_col));
+        skip_space();
+
+        if (peek() == '\"') {
+            get(); // consume opening "
+            std::string fname;
+            while (!eof() && peek() != '\"')
+                fname.push_back(get());
+            if (peek() == '\"') get(); // consume closing "
+
+            toks.push_back(make(TokenType::LIBNAME, fname, start_line, start_col));
+        } else {
+            toks.push_back(make(TokenType::LIBNAME, "", start_line, start_col));
+        }
+        continue;
+    } else {
+        // Unknown preprocessor directive
+        toks.push_back(make(TokenType::IDENT, directive, start_line, start_col));
+        continue;
+    }
+}
+
 
         // Identifiers, mnemonics, labels
       if (std::isalpha((unsigned char)c) || c == '_' || c == '.' || c == '@' || c == '[' || c == ']') {
