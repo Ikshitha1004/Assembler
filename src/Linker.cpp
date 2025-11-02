@@ -626,7 +626,19 @@ void Linker::writeFinalVM(const std::string &outPath,
         {
             const std::string &fName = fieldPair.first;
             const FieldInfo &fInfo = fieldPair.second;
+<<<<<<< HEAD
             uint8_t ftype = static_cast<uint8_t>(get_type_code(fInfo.descriptor));
+=======
+            uint32_t fIndex = fInfo.index;
+            uint32_t ftype = get_type_code(fInfo.descriptor);
+            std::cout<<"[Linker] Class Field "<<fName<<" idx "<<fIndex<<"\n";
+            if (fName.size() > 255)
+                throw std::runtime_error("Field name too long for metadata");
+            classMetaSection.push_back(static_cast<uint8_t>(fName.size()));
+            classMetaSection.insert(classMetaSection.end(), fName.begin(), fName.end());
+            write_u32(classMetaSection, ftype);
+        }
+>>>>>>> e33246780dce3b4d16edfb635b94d25440bf755d
 
             std::cout << "[Linker] Class Field " << fName << " idx " << fInfo.index
                       << " type " << static_cast<int>(ftype) << "\n";
