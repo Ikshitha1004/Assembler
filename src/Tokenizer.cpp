@@ -44,6 +44,7 @@ std::vector<Token> Tokenizer::tokenize() {
 
     // Floating-point arithmetic
     "FADD","FSUB","FMUL","FDIV","FNEG",
+    "IMOD", // New mnemonic for integer modulus
 
     // Load/store
     "LOAD","STORE","LOAD_ARG",
@@ -64,6 +65,8 @@ std::vector<Token> Tokenizer::tokenize() {
 
     "SYS_CALL", // New mnemonic for syscall
     "NEWARRAY"  // New mnemonic for array creation
+    "ALOAD",
+    "ASTORE"
 };
 static const std::unordered_set<std::string> CLASS_META_KEYWORDS = {
     "class_count",

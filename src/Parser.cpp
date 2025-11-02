@@ -225,6 +225,7 @@ void Parser::validate_instruction(const Instruction &ins) {
         case OpCode::FMUL:
         case OpCode::FDIV:
         case OpCode::FNEG:
+        case OpCode::IMOD:
         case OpCode::ICMP_EQ:
         case OpCode::ICMP_LT:
         case OpCode::ICMP_GT:
@@ -237,6 +238,8 @@ void Parser::validate_instruction(const Instruction &ins) {
         case OpCode::FCMP_GEQ:
         case OpCode::FCMP_NEQ:
         case OpCode::FCMP_LEQ:
+        case OpCode::ALOAD:
+        case OpCode::ASTORE:
         case OpCode::RET:
             if (!ins.operands.empty())
                 bad("Instruction takes no operands");

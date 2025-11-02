@@ -20,6 +20,8 @@ enum class OpCode : uint8_t {
     FDIV = 0x09,
     FNEG = 0x0A,
 
+    IMOD = 0x0B,
+
     // Stack ops
     PUSH = 0x10,
     POP = 0x11,
@@ -65,6 +67,8 @@ enum class OpCode : uint8_t {
     // System and array ops
     SYS_CALL = 0x60,
     NEWARRAY = 0x70,
+    ALOAD = 0x71,
+    ASTORE = 0x72,
     INVALID = 0xFF
 
 };
