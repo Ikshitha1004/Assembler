@@ -150,6 +150,19 @@ void Linker::addObjectFile(const std::string &path)
 
             uint32_t fieldCount = read_u32(in);
             cls.field_count = static_cast<int>(fieldCount);
+            for (uint32_t j = 0; j < fieldCount; ++j)
+            {
+                std::string fieldName = read_string_with_len(in);
+                std::string ownerClass = read_string_with_len(in);
+                std::string descriptor = read_string_with_len(in);
+                uint32_t index = read_u32(in);
+                FieldInfo fi;
+                fi.name = fieldName;
+                fi.owner_class = ownerClass;
+                fi.descriptor = descriptor;
+                fi.index = index;
+                cls.fields[fieldName] = fi;
+            }
 
             mod.classes[cls.name] = cls;
         }
@@ -214,19 +227,40 @@ void Linker::detectEntryModule()
             break;
         }
     }
-    if (!entryModule_)
-    {
-        throw std::runtime_error("No entry module with main() found!");
-    }
+    // if (!entryModule_)
+    // {
+    //     throw std::runtime_error("No entry module with main() found!");
+    // }
 }
 
 // --------------------------- assignBaseAddressesAndOrder ---------------------------
 void Linker::assignBaseAddressesAndOrder()
 {
+    // If entry module not yet detected, fallback to sequential order
     if (!entryModule_)
-        throw std::runtime_error("Entry module must be detected before assigning addresses");
+    {
+        std::cout << "[Linker] No entry module detected — linking modules in input order.\n";
+
+        uint32_t curBase = 0;
+        for (auto &m : modules_)
+        {
+            m.live = true;
+            m.base_addr = curBase;
+            curBase += static_cast<uint32_t>(m.code.size());
+        }
+
+        std::cout << "[Linker] Assigned base addresses sequentially (no dependency reordering):\n";
+        for (auto &m : modules_)
+        {
+            std::cout << "  " << m.filename << " base=" << m.base_addr << " size=" << m.code.size() << "\n";
+        }
+        return;
+    }
+
+    // ----------- Normal dependency-based reordering path -----------
     std::string entryFilename = entryModule_->filename;
-    // Build provider map: symbol -> Module* (first provider wins). Consider all modules for provider map.
+
+    // Build provider map: symbol -> Module*
     std::unordered_map<std::string, Module *> provider;
     for (auto &m : modules_)
     {
@@ -237,7 +271,7 @@ void Linker::assignBaseAddressesAndOrder()
         }
     }
 
-    // Build adjacency: module -> set<Module*> it depends on (providers of imports)
+    // Build adjacency: module -> dependencies
     std::unordered_map<Module *, std::set<Module *>> adj;
     for (auto &m : modules_)
     {
@@ -251,47 +285,37 @@ void Linker::assignBaseAddressesAndOrder()
         }
     }
 
-    // DFS-based topo order + mark reachable (live)
+    // DFS topo sort
     std::vector<Module *> ordered;
     std::unordered_map<Module *, int> state; // 0 unvisited, 1 visiting, 2 visited
 
     std::function<void(Module *)> dfs = [&](Module *mod)
     {
-        if (!mod)
-            return;
-        if (state[mod] == 2)
-            return;
-        if (state[mod] == 1)
-            return; // cycle, stop exploring deeper
+        if (!mod || state[mod] == 2) return;
+        if (state[mod] == 1) return; // cycle
         state[mod] = 1;
         auto it = adj.find(mod);
         if (it != adj.end())
         {
             for (Module *dep : it->second)
-            {
                 dfs(dep);
-            }
         }
         state[mod] = 2;
         ordered.push_back(mod);
     };
 
-    // Start DFS from entry module
     dfs(entryModule_);
 
-    // Also include other modules that might be providers for some reachable modules but not reached via DFS (edge cases)
+    // Include any unvisited but needed modules
     for (auto &m : modules_)
     {
         if (state[&m] == 0)
         {
-            // If module is a provider for any import of a visited module, include it
             bool needed = false;
             for (auto &visited : ordered)
             {
                 auto it = adj.find(visited);
-                if (it == adj.end())
-                    continue;
-                if (it->second.count(&m))
+                if (it != adj.end() && it->second.count(&m))
                 {
                     needed = true;
                     break;
@@ -302,79 +326,40 @@ void Linker::assignBaseAddressesAndOrder()
         }
     }
 
-    // Reverse to get entry first then dependencies after (DFS pushes post-order)
     std::reverse(ordered.begin(), ordered.end());
 
-    // Mark live modules (only those in ordered)
-    std::set<Module *> orderedSet(ordered.begin(), ordered.end());
-    for (auto &m : modules_)
-    {
-        m.live = (orderedSet.count(&m) > 0);
-    }
-
-    // Reorder modules_ to contain only live modules in ordered sequence
+    // Mark and reorder
+    std::set<Module *> liveSet(ordered.begin(), ordered.end());
     std::vector<Module> newOrder;
-    newOrder.reserve(ordered.size());
-    // For stable move, find by pointer and move
     for (Module *pm : ordered)
     {
-        bool moved = false;
         for (size_t i = 0; i < modules_.size(); ++i)
         {
             if (&modules_[i] == pm)
             {
                 newOrder.push_back(std::move(modules_[i]));
-                moved = true;
                 break;
             }
-        }
-        if (!moved)
-        {
-            // Should not happen
-            throw std::runtime_error("Internal error: ordered module not found in modules_");
         }
     }
     modules_ = std::move(newOrder);
 
-    // Assign base addresses sequentially; ensure entry module has base 0
+    // Assign base addresses
     uint32_t curBase = 0;
-     // find it again after reorder
-    //std::cout<<"[Linker] entry file na,...\n"<<entryFilename<<"\n";
-
-    // Set base addresses
     for (auto &m : modules_)
     {
-        if (m.filename == entryFilename)
-        {
-            m.base_addr = 0;
-            curBase = static_cast<uint32_t>(m.code.size());
-        }
-        else
-        {
-            m.base_addr = curBase;
-            curBase += static_cast<uint32_t>(m.code.size());
-        }
+        m.base_addr = curBase;
+        m.live = true;
+        curBase += static_cast<uint32_t>(m.code.size());
     }
 
-    // Reset entryModule_ pointer to point into reordered modules_
-    entryModule_ = nullptr;
+    std::cout << "[Linker] Assigned base addresses (dependency order):\n";
     for (auto &m : modules_)
     {
-        if (m.filename == entryFilename)
-        {
-            entryModule_ = &m;
-            break;
-        }
-    }
-    if (!entryModule_)
-        throw std::runtime_error("Entry module vanished after reorder");
-
-    std::cout << "[Linker] Assigned base addresses and reordered modules (dependency order):\n";
-    for (auto &m : modules_)
-    {
-        std::cout << "  " << m.filename << " live=" << (m.live ? "yes" : "no") << " base=" << m.base_addr << " size=" << m.code.size() << "\n";
+        std::cout << "  " << m.filename << " base=" << m.base_addr << " size=" << m.code.size() << "\n";
     }
 }
+
 std::size_t Linker::preparePatch(const Module &m, uint32_t relOffset)
 {
     if (relOffset == 0 || relOffset - 1 >= m.code.size())
@@ -577,7 +562,19 @@ static void write_u32(std::vector<uint8_t> &out, uint32_t val)
     out.push_back((val >> 16) & 0xFF);
     out.push_back((val >> 24) & 0xFF);
 }
-
+uint32_t get_type_code(const std::string &descriptor)
+{
+    if (descriptor == "I")
+       return (uint32_t) 1;
+    else if (descriptor == "F")
+       return (uint32_t) 2;
+    else if (descriptor == "O")
+        return (uint32_t) 3;
+    else if (descriptor == "C")
+       return (uint32_t) 4;
+    else
+        return (uint32_t) 0;
+}
 void Linker::writeFinalVM(const std::string &outPath,
                           const std::vector<uint8_t> &finalCode,
                           uint32_t entryPoint)
@@ -620,6 +617,19 @@ void Linker::writeFinalVM(const std::string &outPath,
         write_u32(classMetaSection, static_cast<uint32_t>(superIdx));
 
         write_u32(classMetaSection, static_cast<uint32_t>(cls.field_count));
+        for (const auto &fieldPair : cls.fields)
+        {
+            const std::string &fName = fieldPair.first;
+            const FieldInfo &fInfo = fieldPair.second;
+            uint32_t fIndex = fInfo.index;
+            uint32_t ftype = get_type_code(fInfo.descriptor);
+            std::cout<<"[Linker] Class Field "<<fName<<" idx "<<fIndex<<"\n";
+            if (fName.size() > 255)
+                throw std::runtime_error("Field name too long for metadata");
+            classMetaSection.push_back(static_cast<uint8_t>(fName.size()));
+            classMetaSection.insert(classMetaSection.end(), fName.begin(), fName.end());
+            write_u32(classMetaSection, ftype);
+        }
 
         write_u32(classMetaSection, static_cast<uint32_t>(cls.methods.size()));
         for (const auto &methPair : cls.methods)
