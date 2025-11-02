@@ -109,10 +109,16 @@ static const std::unordered_set<std::string> SYS_CALL = {
         }
 
         // Identifiers, mnemonics, labels
-        if (std::isalpha((unsigned char)c) || c == '_' || c == '.' || peek() == '@') {
-            std::string ident;
-    while (!eof() && (std::isalnum((unsigned char)peek()) || peek() == '_' || peek() == '.' || peek() == '@'))
-                ident.push_back(get());
+      if (std::isalpha((unsigned char)c) || c == '_' || c == '.' || c == '@' || c == '[' || c == ']') {
+    std::string ident;
+    while (!eof() && (
+            std::isalnum((unsigned char)peek()) ||
+            peek() == '_' || peek() == '.' ||
+            peek() == '@' || peek() == '[' || peek() == ']'))
+    {
+        ident.push_back(get());
+    }
+
               // Directives start with '.'
             if (!ident.empty() && ident[0] == '.') {
                 toks.push_back(make(TokenType::DIRECTIVE, ident, start_line, start_col));
