@@ -1,6 +1,6 @@
 
 .code
-.method main
+.method add
 .limit stack 4
 .limit locals 8
 NEW TestClass ; Create new object of class TestClass

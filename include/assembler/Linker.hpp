@@ -17,7 +17,7 @@ struct ClassInfo {
     uint32_t index = UINT32_MAX;
     uint32_t super_index = UINT32_MAX;
     std::unordered_map<std::string, uint32_t> methods; // methodName -> addr (relative in module until patched)
-    std::unordered_map<std::string, uint32_t> fields;
+    std::unordered_map<std::string, FieldInfo> fields;
     int field_count = 0;
 };
 

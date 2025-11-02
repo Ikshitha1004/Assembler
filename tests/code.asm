@@ -2,7 +2,7 @@
 class_count 2
 class_begin TestClass None
 field_count 1
-field publicVar int 0
+field publicVar I 0
 method_count 3
 method publicMethod TestClass.publicMethod
 method TestClass TestClass.TestClass
@@ -10,7 +10,7 @@ method TestClass TestClass.TestClass@int
 class_end
 class_begin AnotherClass TestClass
 field_count 1
-field anotherVar int 0
+field anotherVar I 0
 method_count 4
 method anotherMethod AnotherClass.anotherMethod
 method publicMethod AnotherClass.publicMethod
@@ -20,7 +20,6 @@ class_end
 .end_metadata
 
 .code
-
 .method TestClass.publicMethod
 .limit stack 4
 .limit locals 0
