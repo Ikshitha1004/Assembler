@@ -35,7 +35,9 @@ void print_tokens(const std::vector<Token> &toks) {
             case TokenType::LABEL_DEF:   std::cout << "LABEL_DEF"; break;
             case TokenType::COMMENT:     std::cout << "COMMENT"; break;
             case TokenType::COMMA:       std::cout << "COMMA"; break;
+            case TokenType::LIBNAME:     std::cout << "LIBNAME"; break;
             case TokenType::SYS_CALL:    std::cout << "SYS_CALL"; break;
+            case TokenType::INCLUDE:     std::cout << "INCLUDE"; break;
             case TokenType::END_OF_FILE: std::cout << "EOF"; break;
         }
         std::cout << ", \"" << t.value << "\" @"

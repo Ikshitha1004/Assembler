@@ -13,6 +13,9 @@ OpCode mnemonic_to_opcode(const std::string &m) {
         {"FADD", OpCode::FADD}, {"FSUB", OpCode::FSUB}, {"FMUL", OpCode::FMUL},
         {"FDIV", OpCode::FDIV}, {"FNEG", OpCode::FNEG},
 
+        { "IMOD", OpCode::IMOD}, 
+
+
         // Stack
         {"PUSH", OpCode::PUSH}, {"POP", OpCode::POP}, {"DUP", OpCode::DUP},
         {"FPOP", OpCode::FPOP}, {"FPUSH", OpCode::FPUSH},
@@ -38,7 +41,9 @@ OpCode mnemonic_to_opcode(const std::string &m) {
 
         // System call & array
         {"SYS_CALL", OpCode::SYS_CALL},
-        {"NEWARRAY", OpCode::NEWARRAY}
+        {"NEWARRAY", OpCode::NEWARRAY},
+        {"ALOAD", OpCode::ALOAD},
+        {"ASTORE", OpCode::ASTORE}
     };
 
     auto it = map.find(m);
@@ -90,6 +95,8 @@ std::string opcode_to_string(OpCode oc) {
         case OpCode::FDIV: return "FDIV";
         case OpCode::FNEG: return "FNEG";
 
+        case OpCode::IMOD: return "IMOD";
+
         // Stack
         case OpCode::PUSH: return "PUSH";
         case OpCode::POP: return "POP";
@@ -135,6 +142,8 @@ std::string opcode_to_string(OpCode oc) {
         // System call & array
         case OpCode::SYS_CALL: return "SYS_CALL";
         case OpCode::NEWARRAY: return "NEWARRAY";
+        case OpCode::ALOAD: return "ALOAD";
+        case OpCode::ASTORE: return "ASTORE";
 
         default: return "INVALID";
     }

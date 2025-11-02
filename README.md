@@ -47,9 +47,9 @@ This repository contains  **Assembler and Linker** in C++ for a custom **stack-b
 
 | **Category**                  | **Instructions**                                                                                                                         |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| **Arithmetic (Int & Float)**  | `IADD`, `ISUB`, `IMUL`, `IDIV`, `INEG`, `FADD`, `FSUB`, `FMUL`, `FDIV`, `FNEG`                                                           |
+| **Arithmetic (Int & Float)**  | `IADD`, `ISUB`, `IMUL`, `IDIV`, `INEG`,`IMOD`, `FADD`, `FSUB`, `FMUL`, `FDIV`, `FNEG`                                                           |
 | **Stack Operations**          | `PUSH`, `POP`, `DUP`, `FPUSH`, `FPOP`                                                                                                    |
-| **Memory Access**             | `LOAD`, `STORE`, `LOAD_ARG`                                                                                                              |
+| **Memory Access**             | `LOAD`, `STORE`, `ALOAD`,`ASTORE`,`LOAD_ARG`                                                                                                              |
 | **Control Flow**              | `JMP`, `JZ`, `JNZ`, `CALL`, `RET`                                                                                                        |
 | **Comparisons (Int & Float)** | `ICMP_EQ`, `ICMP_LT`, `ICMP_GT`, `ICMP_GEQ`, `ICMP_NEQ`, `ICMP_LEQ`, `FCMP_EQ`, `FCMP_LT`, `FCMP_GT`, `FCMP_GEQ`, `FCMP_NEQ`, `FCMP_LEQ` |
 | **Object-Oriented**           | `NEW`, `GETFIELD`, `PUTFIELD`, `INVOKEVIRTUAL`, `INVOKESPECIAL`, `NEWARRAY`                                                              |

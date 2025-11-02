@@ -16,12 +16,12 @@ static uint32_t read_u32(std::ifstream &in, const std::string &label = "")
 {
     uint32_t v;
     in.read(reinterpret_cast<char *>(&v), sizeof(v));
-    if (!in)
-        throw std::runtime_error("Unexpected EOF reading u32");
-    if (!label.empty())
-        std::cout << "[DEBUG] " << label << ": 0x" << std::hex << v << std::dec << std::endl;
-    else
-        std::cout << "[DEBUG] 0x" << std::hex << v << std::dec << std::endl;
+    // if (!in)
+    //     throw std::runtime_error("Unexpected EOF reading u32");
+    // if (!label.empty())
+    //     std::cout << "[DEBUG] " << label << ": 0x" << std::hex << v << std::dec << std::endl;
+    // else
+    //     std::cout << "[DEBUG] 0x" << std::hex << v << std::dec << std::endl;
     return v;
 }
 

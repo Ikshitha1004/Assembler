@@ -24,6 +24,8 @@ inline std::size_t instruction_size(const OpCode op) {
         case OpCode::IDIV: case OpCode::INEG:
         case OpCode::FADD: case OpCode::FSUB: case OpCode::FMUL:
         case OpCode::FDIV: case OpCode::FNEG:
+        case OpCode::IMOD:
+        case OpCode::ALOAD: case OpCode::ASTORE:
         case OpCode::POP:  case OpCode::FPOP: case OpCode::DUP:
         case OpCode::RET:
         case OpCode::ICMP_EQ: case OpCode::ICMP_LT: case OpCode::ICMP_GT:

@@ -45,13 +45,19 @@ int main(int argc, char* argv[]) {
         for (const auto& src : inputFiles) {
             string obj = get_stem(src) + ".vmobj";
             Assembler assembler;
-            if (!assembler.assemble(src, obj)) {
+                auto result = assembler.assemble(src, obj);
+            if (!result.first) {
                 cerr << "[Error] Failed to assemble " << src << endl;
                 return 1;
             }
             objFiles.push_back(obj);
             cout << "[Assembler] " << src << " → " << obj << endl;
-        }
+            for (const auto& lib : result.second) {
+        string lib_obj = lib + ".vmobj";
+        objFiles.push_back(lib_obj);
+        cout << "   [Library] Linked with: " << lib_obj << endl;
+    }
+}
 
         // 2️⃣ Link all .vmobj → .vm
         Linker linker;
