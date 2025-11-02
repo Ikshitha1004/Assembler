@@ -51,8 +51,9 @@ IRBuilder::Report IRBuilder::build(const std::vector<Instruction>& program) {
                          int32_t val = 0;if(!parse_int32(op.label, val)) {
                         // Label not numeric → placeholder 0
                         val = 0;
-                         w.imm.push_back(val);
-                    }}
+                        
+                    }
+                 w.imm.push_back(val);}
                    
                     break;
                 }

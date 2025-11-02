@@ -82,12 +82,12 @@ void writeObjectFile(
         }
 
         write_u32(out, static_cast<uint32_t>(cls.fields.size()));
-        for (const FieldInfo &f : cls.fields) {
-            write_string_with_len(out, f.name);
-            write_string_with_len(out, f.owner_class);
-            write_string_with_len(out, f.descriptor);
-            write_u32(out, f.index);
-        }
+        // for (const FieldInfo &f : cls.fields) {
+        //     write_string_with_len(out, f.name);
+        //     write_string_with_len(out, f.owner_class);
+        //     write_string_with_len(out, f.descriptor);
+        //     write_u32(out, f.index);
+        // }
     }
 
     // Relocations
@@ -96,6 +96,7 @@ void writeObjectFile(
     for (const auto& r : relos) {
         write_u32(out, r.offset);
         write_string_with_len(out, r.symbol_name);
+        write_u32(out, r.is_method_ref); // NEW
         write_u32(out, static_cast<uint32_t>(r.section));
     }
 

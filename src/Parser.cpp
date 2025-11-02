@@ -303,17 +303,17 @@ void Parser::parse_directive() {
             errlist.push_back("'.endmethod' without active method at line " + std::to_string(line));
         }
     } 
-    else if (dir == ".class") {
-        if (cur().type != TokenType::IDENT) {
-            errlist.push_back("Expected class name after .class");
-            return;
-        }
-        std::string className = cur().value;
-        if (!symtab.begin_class_metadata(className)) {
-            errlist.push_back("Duplicate or invalid class: " + className);
-        }
-        advance();
-    } 
+    // else if (dir == ".class") {
+    //     if (cur().type != TokenType::IDENT) {
+    //         errlist.push_back("Expected class name after .class");
+    //         return;
+    //     }
+    //     std::string className = cur().value;
+    //     if (!symtab.begin_class_metadata(className,)) {
+    //         errlist.push_back("Duplicate or invalid class: " + className);
+    //     }
+    //     advance();
+    // } 
     else if (dir == ".super") {
         if (cur().type != TokenType::IDENT) {
             errlist.push_back("Expected superclass name after .super");
@@ -448,14 +448,14 @@ void Parser::parse_class_metadata() {
         advance();
 
         // super index
-        if (cur().type != TokenType::NUMBER) {
-            errlist.push_back("Expected super class index after class name");
+        if (cur().type != TokenType::IDENT) {
+            errlist.push_back("Expected super class name after class name");
             return;
         }
-        int super_idx = std::stoi(cur().value);
+        std::string super_name = cur().value;
         advance();
 
-        if (!symtab.begin_class_metadata(class_name)) {
+        if (!symtab.begin_class_metadata(class_name,super_name)) {
             errlist.push_back("Duplicate class: " + class_name);
         }
 
@@ -814,8 +814,3 @@ std::vector<Instruction> Parser::parse() {
 const std::vector<std::string>& Parser::errors() const {
     return errlist;
 }
-//TODO : access modifiers and polymorphism not handled in the gien output
-//TODO : data seg needs to be handled.
-//TODO :InvokeSpecial and virtual and New to be handled correctly
-//TODO : Array handling?
-//TODO: parser -relocation parts for jmp,jnz,call ....absolute addr handling

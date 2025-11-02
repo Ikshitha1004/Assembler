@@ -60,11 +60,12 @@ std::pair<bool, ConstantInfo> SymbolTable::get_constant(const std::string& name)
 
 // ----- Class metadata -----
 
-bool SymbolTable::begin_class_metadata(const std::string& class_name) {
+bool SymbolTable::begin_class_metadata(const std::string& class_name,const std::string& super_name) {
     if (class_metadata_.find(class_name) != class_metadata_.end()) return false;
     ClassMetadata cm;
     cm.name = class_name;
     cm.index = UINT32_MAX;
+    cm.super_name = super_name;
     class_metadata_[class_name] = cm;
     current_class_meta_ = &class_metadata_[class_name];
     current_class_ = class_name;
@@ -281,11 +282,11 @@ std::pair<bool, std::vector<Value>> SymbolTable::get_data_symbol(const std::stri
 std::vector<RelocationEntry> SymbolTable::generate_relocation_table() const {
     std::vector<RelocationEntry> relos;
     for (const auto &ref : pending_refs_) {
-        if (!ref.resolved) {
+        //if (!ref.resolved) {
             // std::cout<<"Unresolved reference to label '" << ref.label << "' at line "
             //          << ref.line << ", col " << ref.is_method_ref<< "\n";
             relos.push_back({ref.from_code_offset, ref.label, ref.section,ref.is_method_ref});
-        }
+       // }
     }
     return relos;
 }

@@ -199,19 +199,15 @@ static bool parse_vmobj(const vector<uint8_t>& data,
     return true;
 }
 
-// Parse final .vm (executable) format code offset/size and constants (simple)
 static bool parse_vm_exec(const vector<uint8_t>& data,
                           size_t &codeOffset, size_t &codeSize,
                           size_t &constPoolOffset, size_t &constPoolSize,
-                          uint32_t &entryPoint)
-                          
+                          uint32_t &entryPoint,
+                          size_t &classMetaOffset, size_t &classMetaSize)
 {
     if (data.size() < 44) return false;
-    // VM header format used in your VM::loadFromBinary (magic(4) + version + entry + constPoolOffset + constPoolSize + codeOffset + codeSize + globalsOffset + globalsSize + classMetaOffset + classMetaSize)
-    // The code in VM::loadFromBinary reads: magic(4) then next 4 as version (32-bit) etc.
-    // Let's parse according to that layout:
     uint32_t magic = read_u32(data, 0);
-    const uint32_t EXPECTED_MAGIC = 0x01004D56; // you used hdr.magic = 0x01004D56
+    const uint32_t EXPECTED_MAGIC = 0x01004D56;
     if (magic != EXPECTED_MAGIC) return false;
     uint32_t version = read_u32(data, 4);
     entryPoint = read_u32(data, 8);
@@ -219,10 +215,67 @@ static bool parse_vm_exec(const vector<uint8_t>& data,
     constPoolSize   = read_u32(data, 16);
     codeOffset = read_u32(data, 20);
     codeSize   = read_u32(data, 24);
-    // we don't need the rest for disasm
+    // globals (we don't use)
+    // class metadata
+    classMetaOffset = read_u32(data, 36);
+    classMetaSize   = read_u32(data, 40);
     if (codeOffset + codeSize > data.size()) return false;
+    if (classMetaOffset + classMetaSize > data.size()) return false;
     return true;
 }
+
+// Parse and pretty-print class metadata section written by Linker::writeFinalVM
+static bool parse_and_dump_class_meta(const vector<uint8_t>& data, size_t offset, size_t size) {
+    size_t p = offset;
+    size_t end = offset + size;
+    if (offset + 4 > data.size()) return false;
+    if (p + 4 > end) return false;
+    uint32_t classCount = read_u32(data, p); p += 4;
+    cout << "\n=== CLASS METADATA ===\n";
+    cout << "classCount = " << classCount << "\n";
+    for (uint32_t i = 0; i < classCount; ++i) {
+        if (p + 1 > data.size() || p + 1 > end) return false;
+        uint8_t nameLen = read_u8(data, p); p += 1;
+        if (p + nameLen > data.size() || p + nameLen > end) return false;
+        string className;
+        if (nameLen) {
+            className.assign(reinterpret_cast<const char*>(&data[p]), nameLen);
+            p += nameLen;
+        }
+        if (p + 4 > data.size() || p + 4 > end) return false;
+        uint32_t superIdx_u = read_u32(data, p); p += 4;
+        int32_t superIdx = static_cast<int32_t>(superIdx_u); // -1 means none
+        if (p + 4 > data.size() || p + 4 > end) return false;
+        uint32_t fieldsCount = read_u32(data, p); p += 4;
+        if (p + 4 > data.size() || p + 4 > end) return false;
+        uint32_t methodsCount = read_u32(data, p); p += 4;
+
+        cout << "\nClass[" << i << "]: \"" << className << "\"\n";
+        cout << "  superIndex = " << superIdx << "\n";
+        cout << "  fieldsCount = " << fieldsCount << "\n";
+        cout << "  methodsCount = " << methodsCount << "\n";
+
+        for (uint32_t m = 0; m < methodsCount; ++m) {
+            if (p + 1 > data.size() || p + 1 > end) return false;
+            uint8_t mNameLen = read_u8(data, p); p += 1;
+            if (p + mNameLen + 4 > data.size() || p + mNameLen + 4 > end) return false;
+            string mName;
+            if (mNameLen) {
+                mName.assign(reinterpret_cast<const char*>(&data[p]), mNameLen);
+                p += mNameLen;
+            }
+            uint32_t absOffset = read_u32(data, p); p += 4;
+            cout << "    method: \"" << mName << "\" -> offset=" << absOffset << "\n";
+        }
+    }
+    // sanity: p should equal end or be <= end
+    if (p != end) {
+        cout << "(note: class meta parsed, " << (end - p) << " extra bytes remain)\n";
+    }
+    return true;
+}
+
+
 
 int main(int argc, char** argv) {
     if (argc < 2) {
@@ -254,20 +307,32 @@ int main(int argc, char** argv) {
         }
         cout << "[VMOBJ] code bytes: " << code.size() << ", labels: " << labels.size() << ", methods: " << methods.size() << ", relocs: " << relocs.size() << "\n";
     } else {
-        // Try executable .vm
+            // Try executable .vm
         size_t codeOffset=0, codeSize=0, constPoolOffset=0, constPoolSize=0;
-        uint32_t entryPoint=0;
-        bool ok = parse_vm_exec(filedata, codeOffset, codeSize, constPoolOffset, constPoolSize,entryPoint);
-        if (!ok) {
-            cerr << "Unknown file format or unsupported magic\n";
-            return 1;
+    size_t classMetaOffset=0, classMetaSize=0;
+    uint32_t entryPoint=0;
+    bool ok = parse_vm_exec(filedata, codeOffset, codeSize, constPoolOffset, constPoolSize, entryPoint,
+                            classMetaOffset, classMetaSize);
+    if (!ok) { cerr << "Unknown file format or unsupported magic\n"; return 1; }
+    code.assign(filedata.begin()+codeOffset, filedata.begin()+codeOffset+codeSize);
+
+    cout << "[VM_EXEC] codeOffset=" << codeOffset
+        << " codeSize=" << codeSize
+        << " constPoolOffset=" << constPoolOffset
+        << " constPoolSize=" << constPoolSize
+        << " entryPoint=0x" << hex << entryPoint << dec
+        << " classMetaOffset=" << classMetaOffset
+        << " classMetaSize=" << classMetaSize
+        << "\n";
+
+    // parse class metadata if present
+    if (classMetaSize > 0) {
+        bool okmeta = parse_and_dump_class_meta(filedata, classMetaOffset, classMetaSize);
+        if (!okmeta) {
+            cerr << "Failed to parse class metadata section\n";
         }
-        code.assign(filedata.begin()+codeOffset, filedata.begin()+codeOffset+codeSize);
-        cout << "[VM_EXEC] codeOffset=" << codeOffset
-     << " codeSize=" << codeSize
-     << " constPoolOffset=" << constPoolOffset
-     << " constPoolSize=" << constPoolSize
-     << " entryPoint=0x" << hex << entryPoint << dec << "\n";
+    }
+
         // .vm executable normally contains class metadata which we don't need for disassembly here
     }
 

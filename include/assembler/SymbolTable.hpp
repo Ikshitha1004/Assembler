@@ -139,7 +139,7 @@ public:
     // ------------------------------------------------------------------------
     bool add_field(const std::string& owner_class, const std::string& field_name,
                    const std::string& descriptor, uint32_t index = UINT32_MAX);
-    bool begin_class_metadata(const std::string& class_name);
+    bool begin_class_metadata(const std::string& class_name, const std::string& super_name);
     bool set_class_super(const std::string& super_name);
     void set_current_class(const std::string& class_name) { current_class_ = class_name; }
     bool add_field_metadata(const FieldInfo& field);
