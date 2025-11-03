@@ -11,7 +11,9 @@
 #include <iostream> 
 #include <utility> // for std::move
 
-
+const std::vector<std::string> Parser::known_libs = {
+    "arithmetic", "io", "terminos", "utility", "filehandler", "stringhandler", "vector"
+};
 Parser::Parser(const std::vector<Token>& t)
     : toks(t), idx(0) {}
 
@@ -624,10 +626,11 @@ void Parser::parse_line() {
             if (found) {
                
                 op.kind = Operand::Kind::Immediate;  // label points to a class name
+                std::cout<<"Class found in metadata: " << clsMeta.index << "\n";
                 op.val = Value((int)clsMeta.index); 
                 symtab.set_current_class(className);
             } else {
-                
+            
                 op.kind = Operand::Kind::Label;  // label points to a class name
                 op.label = className; 
                 symtab.add_reference(instrs.size(), 0, className,

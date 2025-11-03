@@ -23,9 +23,7 @@ public:
     const SymbolTable& symbols() const { return symtab; }
     bool is_valid_lib(const std::string &name) ;
     std::vector<std::string> includes;
-     static inline const std::vector<std::string> known_libs = {
-        "arithmetic", "io", "terminos", "utility", "filehandler", "stringhandler", "vector"
-    };
+     static  const std::vector<std::string> known_libs;
 
 
 
