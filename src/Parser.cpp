@@ -11,6 +11,7 @@
 #include <limits>
 #include <iostream> 
 #include <utility> // for std::move
+// #include <regex>
 
 const std::vector<std::string> Parser::known_libs = {
     "arithmetic", "io", "terminos", "utility", "filehandler", "stringhandler", "vector"
@@ -168,11 +169,31 @@ void Parser::parse_operands(Instruction &ins) {
                 op.val.intValue = std::stoi(cur().value);
                 op.val.isFloat = false;
             } 
-            else {
-                // Treat as label for now, resolved later
-                op.kind = Operand::Kind::Label;
-                op.label = cur().value;
-            }
+             else {
+            //     // Treat as label for now, resolved later
+            //     op.kind = Operand::Kind::Label;
+            //     op.label = cur().value;
+            // }
+            std::string name = cur().value;
+
+    // if (ins.op == OpCode::PUSH) {
+    //     int cpIndex = constpool.get_index_if_exists(name);  // new helper function
+    //     if (cpIndex != -1) {
+    //         op.kind = Operand::Kind::ConstPoolIndex;
+    //         op.index = cpIndex;
+    //     } else {
+    //         // fallback: normal label
+    //         op.kind = Operand::Kind::Label;
+    //         op.label = name;
+    //     }
+    // } 
+    // // ✅ Case 2: other instructions use label/var as-is
+    // else {
+    //     op.kind = Operand::Kind::Label;
+    //     op.label = name;
+    // }
+}
+
 
             ins.operands.push_back(op);
             advance();
@@ -273,6 +294,7 @@ void Parser::parse_directive() {
     advance();
     if (dir == ".data") {
         symtab.begin_data();
+        // parse_data_section();
     } 
     else if (dir == ".code") {
         symtab.begin_text();
@@ -366,6 +388,17 @@ void Parser::parse_directive() {
     }
 
     std::string methodName = cur().value;
+    // auto dotPos = methodName.find('.');
+    // if (dotPos != std::string::npos) {
+    //     std::string className = methodName.substr(0, dotPos);
+    //     std::string actualMethodName = methodName.substr(dotPos + 1);
+
+    //     if (className == actualMethodName) {
+    //         std::cout << "Class name and method name are the same: " << className << std::endl;
+    //         symtab.set_current_class(className);
+
+    //     }
+    // }
     std::cout << "Parsing method: " << methodName << std::endl;
     advance();
 
@@ -427,6 +460,49 @@ void Parser::parse_directive() {
         errlist.push_back("Unknown directive '" + dir + "' at line " + std::to_string(line));
     }
 }
+// void Parser::parse_data_section() {
+//     // Consume the ".data" directive
+
+//     while (idx < toks.size()) {
+//         const Token& t = cur();
+
+//         // Stop if another section begins
+//         if (t.value == ".code" || t.value == ".text" || t.value == ".method" || t.value == ".end_metadata")
+//             break;
+
+//         // Expect label definition like STR_0:
+//         if (t.type != TokenType::LABEL_DEF) {
+//             errlist.push_back("[Parser] Expected label in .data section, got: " + t.value);
+//             advance();
+//             continue;
+//         }
+
+//         std::string label = t.value;
+//         advance();
+
+//         // Expect ".word"
+//         if (cur().type != TokenType::DIRECTIVE || cur().value != ".word") {
+//             errlist.push_back("[Parser] Expected '.word' after label " + label);
+//             advance();
+//             continue;
+//         }
+//         advance();
+
+//         // Expect a STRING token
+//         if (cur().type != TokenType::STRING) {
+//             errlist.push_back("[Parser] Expected string literal after .word for label " + label);
+//             advance();
+//             continue;
+//         }
+
+//         std::string value = cur().value;
+//         advance();
+
+//         int cpIndex = constpool.add_string(value);
+//         std::cout << "[ConstPool] Added " << label << " -> #" << cpIndex
+//                   << " \"" << value << "\"\n";
+//     }
+// }
 
 
 void Parser::parse_class_metadata() {
@@ -626,19 +702,15 @@ void Parser::parse_line() {
              Operand op;
             if (found) {
                
-               // op.kind = Operand::Kind::Immediate;  // label points to a class name
-               // std::cout<<"Class found in metadata: " << clsMeta.index << "\n";
-               // op.val = Value((int)clsMeta.index); 
+                // op.kind = Operand::Kind::Immediate;  // label points to a class name
+                // op.val = Value((int)clsMeta.index); 
                 symtab.set_current_class(className);
             } 
-            //else {
-            
-                op.kind = Operand::Kind::Label;  // label points to a class name
-                op.label = className; 
-                symtab.add_reference(instrs.size(), 0, className,
+                
+            op.kind = Operand::Kind::Label;  // label points to a class name
+            op.label = className; 
+            symtab.add_reference(instrs.size(), 0, className,
                                     ins.src_line, ins.src_col,2);  // false = not a method
-            //}
-
             ins.operands.push_back(op);
         }
        
@@ -656,9 +728,7 @@ void Parser::parse_line() {
             bool found = p.first;
             const ClassMetadata& clsMeta = p.second;
             if (found && fieldIndex >= clsMeta.fields.size()) {
-                
-                errlist.push_back("Invalid field index for class in field ind" + clsMeta.name + std::to_string(fieldIndex) +"at"+ std::to_string(cur().line));
-                //e
+                // errlist.push_back("Invalid field index for class " + clsMeta.name+"field index: " + std::to_string(fieldIndex) +"at line " + std::to_string(ins.src_line));
             }
         advance();
     }

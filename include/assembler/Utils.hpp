@@ -37,7 +37,6 @@ inline std::size_t instruction_size(const OpCode op) {
         // --- 1B operand (opcode + 8-bit operand) ---
         case OpCode::LOAD_ARG:
         case OpCode::NEW: case OpCode::GETFIELD: case OpCode::PUTFIELD:
-        case OpCode::INVOKEVIRTUAL: case OpCode::INVOKESPECIAL:
         case OpCode::SYS_CALL: case OpCode::NEWARRAY:
             return 1 + 1;
 
@@ -49,10 +48,9 @@ inline std::size_t instruction_size(const OpCode op) {
 
         // --- 4B operand (opcode + 32-bit operand) ---
         case OpCode::PUSH: case OpCode::FPUSH:
-        case OpCode::LOAD: case OpCode::STORE: 
-        return 1 + 4;
-        case OpCode::CALL:
-            return 1 + 4 + 4;
+        case OpCode::INVOKEVIRTUAL: case OpCode::INVOKESPECIAL:
+        case OpCode::LOAD: case OpCode::STORE: case OpCode::CALL:
+            return 1 + 4;
 
         // --- Default fallback ---
         default:
