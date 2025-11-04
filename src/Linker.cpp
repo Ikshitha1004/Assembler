@@ -479,6 +479,25 @@ void Linker::applyRelocations()
                 patch_bytes(m.code, operandOffset, clsIndex, patchBytes);
                 continue;
             }
+             if (opcode == 0x33)
+            {
+                auto it = global_symbols_.find(r.symbol_name);
+                if (it == global_symbols_.end())
+                    throw std::runtime_error("Unresolved symbol in CALL: " + r.symbol_name + " in module " + m.filename);
+
+                uint32_t target = it->second.address;
+
+                // Force patch only the first 4 bytes (target address)
+                std::size_t callPatchBytes = std::min<std::size_t>(4, patchBytes);
+
+                std::cout << "[Linker] Patching CALL target for symbol " << r.symbol_name
+                          << " with addr " << target << " (only first 4 bytes)\n";
+
+                patch_bytes(m.code, operandOffset, target, callPatchBytes);
+
+                // Skip normal relocation logic
+                continue;
+            }
 
             // --- Normal relocations (symbol references) ---
             auto it = global_symbols_.find(r.symbol_name);

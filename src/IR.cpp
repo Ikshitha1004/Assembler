@@ -4,6 +4,7 @@
 #include "assembler/IR.hpp"
 #include <cstdlib>
 #include <sstream>
+#include <iostream>
 #include <cerrno>
 #include <climits>
 
@@ -37,6 +38,9 @@ IRBuilder::Report IRBuilder::build(const std::vector<Instruction>& program) {
 
             switch (op.kind) {
                 case Operand::Kind::Immediate:
+                    if(ins.op == OpCode::CALL) {
+                       std::cout<<"[IRBuilder] CALL immediate operand: " << (op.val.isFloat ? op.val.floatValue : op.val.intValue) << "\n";
+                    } 
                     w.imm.push_back(op.val);
                     break;
 

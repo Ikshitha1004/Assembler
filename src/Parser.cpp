@@ -7,6 +7,7 @@
 #include <cctype>
 #include <sstream>
 #include <iostream>
+#include <algorithm>
 #include <limits>
 #include <iostream> 
 #include <utility> // for std::move
@@ -96,20 +97,12 @@ void Parser::parse_operands(Instruction &ins) {
         // Get method name
         std::string methodName = cur().value;
         advance();
+        std::cout << "[Parser] CALL method: " << methodName << "\n";
 
         // Collect method signature types (all consecutive IDENTs)
-        std::vector<std::string> argTypes;
-        while (cur().type == TokenType::IDENT) {
-            argTypes.push_back(cur().value);
-            advance();
-        }
-
-        // Build signature string: "int,int,float"
-        std::string sig;
-        for (size_t i = 0; i < argTypes.size(); ++i) {
-            sig += argTypes[i];
-            if (i != argTypes.size() - 1) sig += ",";
-        }
+      // Count number of '@' characters in the method name
+      int argCount = std::count(methodName.begin(), methodName.end(), '@');
+        std::cout<<"[Parser] CALL method: " << methodName << " with signature (" << argCount << ")\n";
 
         // Resolve owner (if your symbol table tracks current class)
         std::string owner = symtab.get_current_class();
@@ -122,7 +115,12 @@ void Parser::parse_operands(Instruction &ins) {
         op.kind = Operand::Kind::Label;
         op.label = methodName;
         ins.operands.push_back(op);
-
+        Operand op2;
+        op2.kind = Operand::Kind::Immediate;
+        //int s = Value(argCount);
+        op2.val =Value(argCount); // number of arguments
+        std::cout << "[Parser] CALL arg count: " << "\n";
+        ins.operands.push_back(op2);
         return;
     }
     if (ins.op == OpCode::NEWARRAY) {
@@ -210,7 +208,6 @@ void Parser::validate_instruction(const Instruction &ins) {
         case OpCode::JMP:
         case OpCode::JZ:
         case OpCode::JNZ:
-        case OpCode::CALL:
         case OpCode::NEW:
         case OpCode::GETFIELD:
         case OpCode::PUTFIELD:
@@ -254,6 +251,10 @@ void Parser::validate_instruction(const Instruction &ins) {
         case OpCode::RET:
             if (!ins.operands.empty())
                 bad("Instruction takes no operands");
+            break;
+        case OpCode::CALL:
+            if (ins.operands.size() != 2)
+                bad("CALL instruction requires exactly 2 operands");
             break;
 
         // ---- Catch invalid mnemonics ----
@@ -625,17 +626,18 @@ void Parser::parse_line() {
              Operand op;
             if (found) {
                
-                op.kind = Operand::Kind::Immediate;  // label points to a class name
-                std::cout<<"Class found in metadata: " << clsMeta.index << "\n";
-                op.val = Value((int)clsMeta.index); 
+               // op.kind = Operand::Kind::Immediate;  // label points to a class name
+               // std::cout<<"Class found in metadata: " << clsMeta.index << "\n";
+               // op.val = Value((int)clsMeta.index); 
                 symtab.set_current_class(className);
-            } else {
+            } 
+            //else {
             
                 op.kind = Operand::Kind::Label;  // label points to a class name
                 op.label = className; 
                 symtab.add_reference(instrs.size(), 0, className,
                                     ins.src_line, ins.src_col,2);  // false = not a method
-            }
+            //}
 
             ins.operands.push_back(op);
         }
@@ -654,7 +656,9 @@ void Parser::parse_line() {
             bool found = p.first;
             const ClassMetadata& clsMeta = p.second;
             if (found && fieldIndex >= clsMeta.fields.size()) {
-                errlist.push_back("Invalid field index for class " + clsMeta.name);
+                
+                errlist.push_back("Invalid field index for class in field ind" + clsMeta.name + std::to_string(fieldIndex) +"at"+ std::to_string(cur().line));
+                //e
             }
         advance();
     }
@@ -732,8 +736,13 @@ if (oc == OpCode::INVOKEVIRTUAL || oc == OpCode::INVOKESPECIAL) {
                         }
                         break;
                     }
-                     case OpCode::CALL:
-                    {
+                    
+                    default:
+                        break;
+                }
+            }
+            if(oc == OpCode::CALL) {
+                    
        
 
                     const Operand& op = ins.operands[0];
@@ -765,11 +774,6 @@ if (oc == OpCode::INVOKEVIRTUAL || oc == OpCode::INVOKESPECIAL) {
                             //         << " at line " << ins.src_line << "\n";
                         }
                     }
-                    break;
-                    }
-                    default:
-                        break;
-                }
             }
         }
 

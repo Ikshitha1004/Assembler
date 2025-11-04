@@ -49,8 +49,10 @@ inline std::size_t instruction_size(const OpCode op) {
 
         // --- 4B operand (opcode + 32-bit operand) ---
         case OpCode::PUSH: case OpCode::FPUSH:
-        case OpCode::LOAD: case OpCode::STORE: case OpCode::CALL:
-            return 1 + 4;
+        case OpCode::LOAD: case OpCode::STORE: 
+        return 1 + 4;
+        case OpCode::CALL:
+            return 1 + 4 + 4;
 
         // --- Default fallback ---
         default:
