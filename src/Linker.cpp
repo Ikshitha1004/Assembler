@@ -472,9 +472,11 @@ void Linker::applyRelocations()
             if (opcode == 0x50)
             {
                 std::string clsName = r.symbol_name;
+                std::cout << "[Linker] Relocation for NEW opcode, class name: " << clsName << "\n";
                 if (!class_indices_.count(clsName))
                     throw std::runtime_error("Unknown class for NEW: " + clsName);
                 uint32_t clsIndex = class_indices_[clsName];
+                std::cout << "[Linker] Class " << clsName << " has index " << clsIndex << "\n";
                 std::cout << "[Linker] Patching NEW for class " << clsName << " with idx " << clsIndex << "\n";
                 patch_bytes(m.code, operandOffset, clsIndex, patchBytes);
                 continue;
