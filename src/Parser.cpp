@@ -140,9 +140,26 @@ void Parser::parse_operands(Instruction &ins) {
             int typeVal = -1;
             if (typeStr == "I" || typeStr=="int") typeVal = static_cast<int>(FieldType::INT);
             else if (typeStr == "F" || typeStr=="float" )typeVal = static_cast<int>(FieldType::FLOAT);
-            else if (typeStr == "O" || typeStr=="object") typeVal = static_cast<int>(FieldType::OBJECT);
+            // else if (typeStr == "O" || typeStr=="object") typeVal = static_cast<int>(FieldType::OBJECT);
             else if (typeStr == "C" || typeStr=="char") typeVal = static_cast<int>(FieldType::CHAR);
-            else throw std::runtime_error("Invalid type for NEWARRAY: " + typeStr);
+            else {
+    bool foundClass = false;
+
+    // Check if the type name matches any class in the symbol table
+    for (auto &kv : symtab.class_metadata()) {
+        if (kv.first == typeStr) {
+            foundClass = true;
+            break;
+        }
+    }
+
+    if (foundClass) {
+        typeVal = static_cast<int>(FieldType::OBJECT);
+    } else {
+        throw std::runtime_error("Invalid type for NEWARRAY: " + typeStr);
+    }
+}
+
 
             op.kind = Operand::Kind::Immediate;
             op.val.intValue = typeVal;
