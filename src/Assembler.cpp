@@ -97,17 +97,17 @@ std::pair<bool,std::vector<std::string>>Assembler::assemble(const std::string& i
     auto irrep = assembler::IRBuilder::build(instructions);
 
     std::cout << "\n=== IR WORDS ===\n";
-    // for (size_t i = 0; i < irrep.words.size(); ++i) {
-    //     const auto &w = irrep.words[i];
-    //     std::cout << i << ": opcode=0x"
-    //               << std::hex << std::setw(2) << std::setfill('0')
-    //               << (int)w.opcode << std::dec;
-    // for (auto &v : w.imm) {
-    //    // std::cout<<"ssss "<<v.isFloat?"(float)":"(int)";
-    //     std::cout << " " << (v.isFloat ? v.floatValue : v.intValue);
-    // }        
-    // std::cout << "   (src line " << w.src_line << ")\n";
-    // }
+    for (size_t i = 0; i < irrep.words.size(); ++i) {
+        const auto &w = irrep.words[i];
+        std::cout << i << ": opcode=0x"
+                  << std::hex << std::setw(2) << std::setfill('0')
+                  << (int)w.opcode << std::dec;
+    for (auto &v : w.imm) {
+        // std::cout<<"ssss "<<v.isFloat?"(float)":"(int)";
+        std::cout << " " << (v.isFloat ? v.floatValue : v.intValue);
+    }        
+    std::cout << "   (src line " << w.src_line << ")\n";
+    }
 
     // Convert IR → raw bytecode
    std::vector<uint8_t> code;

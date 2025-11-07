@@ -1,492 +1,491 @@
 .class_metadata
 class_count 1
-class_begin Arithmetic -1
+class_begin IOHandler None
 field_count 0
-method_count 15
-method abs Arithmetic.abs@int
-method abs Arithmetic.abs@float
-method abs Arithmetic.abs@float
-method sqrt Arithmetic.sqrt@float
-method sqrt Arithmetic.sqrt@float
-method exp Arithmetic.exp@float
-method exp Arithmetic.exp@float
-method power Arithmetic.power@float@int
-method power Arithmetic.power@float@int
-method max Arithmetic.max@int@int
-method max Arithmetic.max@float@float
-method max Arithmetic.max@float@float
-method min Arithmetic.min@int@int
-method min Arithmetic.min@float@float
-method min Arithmetic.min@float@float
+method_count 10
+method readChar IOHandler.readChar
+method writeChar IOHandler.writeChar@C
+method readString IOHandler.readString@[C@I
+method stringToInt IOHandler.stringToInt@[C
+method intToString IOHandler.intToString@I@[C
+method doubleToString IOHandler.doubleToString@F@[C
+method readInt IOHandler.readInt
+method printString IOHandler.printString@[C
+method printInt IOHandler.printInt@I
+method printDouble IOHandler.printDouble@F
 class_end
 .end_metadata
 
 .code
 
-.method Arithmetic.abs@int
+.method IOHandler.readChar
 .limit stack 4
-.limit locals 2
-LOAD_ARG 1  ; Load parameter 'x'
+.limit locals 3
+PUSH 1
+NEWARRAY C
+STORE 1 ; Store new flattened array to 'c'
 PUSH 0
-ICMP_LT
-JNZ L0
-JMP L1
-L0:
-LOAD_ARG 1  ; Load parameter 'x'
-INEG
-RET
-L1:
-LOAD_ARG 1  ; Load parameter 'x'
+LOAD 1  ; Load local var c
+PUSH 1
+POP
+LOAD 1 ; Load array variable 'c'
+PUSH 0
+ALOAD
+STORE 2 ; Store to local 'ans'
+LOAD 2  ; Load local var ans
 RET
 .endmethod
 
-.method Arithmetic.abs@float
-.limit stack 4
-.limit locals 2
-LOAD_ARG 1  ; Load parameter 'x'
-PUSH 0
-ICMP_LT
-JNZ L2
-JMP L3
-L2:
-LOAD_ARG 1  ; Load parameter 'x'
-FNEG
-RET
-L3:
-LOAD_ARG 1  ; Load parameter 'x'
-RET
-.endmethod
-
-.method Arithmetic.abs@float
-.limit stack 4
-.limit locals 2
-LOAD_ARG 1  ; Load parameter 'x'
-PUSH 0
-ICMP_LT
-JNZ L4
-JMP L5
-L4:
-LOAD_ARG 1  ; Load parameter 'x'
-FNEG
-RET
-L5:
-LOAD_ARG 1  ; Load parameter 'x'
-RET
-.endmethod
-
-.method Arithmetic.sqrt@float
+.method IOHandler.writeChar@C
 .limit stack 4
 .limit locals 4
-LOAD_ARG 1  ; Load parameter 'x'
+PUSH 1
+NEWARRAY C
+STORE 3 ; Store new flattened array to 'arr'
+LOAD 3 ; Load array variable 'arr'
 PUSH 0
+LOAD_ARG 1  ; Load parameter 'c'
+ASTORE ; Store to array element
+PUSH 1
+LOAD 3  ; Load local var arr
+PUSH 1
+POP
+.endmethod
+
+.method IOHandler.readString@[C@I
+.limit stack 4
+.limit locals 6
+PUSH 0
+STORE 4 ; Init i
+L0:
+LOAD 4  ; Load local var i
+LOAD_ARG 2  ; Load parameter 'size'
+PUSH 1
+ISUB
 ICMP_LT
+JNZ L1
+JMP L2
+L1:
+LOAD_ARG 0 ; Load 'this' for method call
+INVOKEVIRTUAL 0 ; Call IOHandler.readChar
+STORE 5 ; Store to local 'c'
+LOAD 5  ; Load local var c
+PUSH 92 ; Push ASCII for char '\n'
+ICMP_EQ
+JNZ L3
+JMP L5
+L5:
+LOAD 5  ; Load local var c
+PUSH 92 ; Push ASCII for char '\r'
+ICMP_EQ
+JNZ L3
+JMP L4
+L3:
+JMP L2 ; BREAK
+L4:
+LOAD_ARG 1 ; Load array parameter 'arr'
+LOAD 4  ; Load local var i
+LOAD 5  ; Load local var c
+ASTORE ; Store to array element
+LOAD 4 ; Load current value of i for post increment
+DUP
+PUSH 1
+IADD
+STORE 4 ; Post increment
+POP
+JMP L0
+L2:
+LOAD_ARG 1 ; Load array parameter 'arr'
+LOAD 4  ; Load local var i
+PUSH 92 ; Push ASCII for char '\0'
+ASTORE ; Store to array element
+.endmethod
+
+.method IOHandler.stringToInt@[C
+.limit stack 4
+.limit locals 9
+PUSH 1
+STORE 8 ; Init sign
+PUSH 0
+STORE 7 ; Init num
+PUSH 0
+STORE 6 ; Init i
+LOAD_ARG 1 ; Load array parameter 'arr'
+PUSH 0
+ALOAD
+PUSH 45 ; Push ASCII for char '-'
+ICMP_EQ
 JNZ L6
 JMP L7
 L6:
 PUSH 1
 INEG
-RET
-L7:
-LOAD_ARG 1  ; Load parameter 'x'
-PUSH 0
-ICMP_EQ
-JNZ L8
-JMP L10
-L10:
-LOAD_ARG 1  ; Load parameter 'x'
-PUSH 1
-ICMP_EQ
-JNZ L8
-JMP L9
-L8:
-LOAD_ARG 1  ; Load parameter 'x'
-RET
-L9:
-LOAD_ARG 1  ; Load parameter 'x'
-STORE 1 ; Init guess
-FPUSH 0.0000000001
-STORE 2 ; Init eps
-L11:
-JMP L12
-L12:
-FPUSH 0.5
-LOAD 1  ; Load local var guess
-LOAD_ARG 1  ; Load parameter 'x'
-LOAD 1  ; Load local var guess
-FDIV
-FADD
-FMUL
-STORE 3 ; Init newGuess
-LOAD_ARG 0 ; Load 'this' for method call
-LOAD 3  ; Load local var newGuess
-LOAD 1  ; Load local var guess
-FSUB
-INVOKEVIRTUAL 1 ; Call Arithmetic.abs@float
-LOAD 2  ; Load local var eps
-ICMP_LT
-JNZ L14
-JMP L15
-L14:
-JMP L13 ; BREAK
-L15:
-LOAD 3  ; Load local var newGuess
-STORE 1 ; Store to local 'guess'
-JMP L11
-L13:
-LOAD 1  ; Load local var guess
-RET
-.endmethod
-
-.method Arithmetic.sqrt@float
-.limit stack 4
-.limit locals 7
-LOAD_ARG 1  ; Load parameter 'x'
-PUSH 0
-ICMP_LT
-JNZ L16
-JMP L17
-L16:
-PUSH 1
-INEG
-RET
-L17:
-LOAD_ARG 1  ; Load parameter 'x'
-PUSH 0
-ICMP_EQ
-JNZ L18
-JMP L20
-L20:
-LOAD_ARG 1  ; Load parameter 'x'
-PUSH 1
-ICMP_EQ
-JNZ L18
-JMP L19
-L18:
-LOAD_ARG 1  ; Load parameter 'x'
-RET
-L19:
-LOAD_ARG 1  ; Load parameter 'x'
-STORE 4 ; Init guess
-FPUSH 0.0000000001
-STORE 5 ; Init eps
-L21:
-JMP L22
-L22:
-FPUSH 0.5
-LOAD 4  ; Load local var guess
-LOAD_ARG 1  ; Load parameter 'x'
-LOAD 4  ; Load local var guess
-FDIV
-FADD
-FMUL
-STORE 6 ; Init newGuess
-LOAD_ARG 0 ; Load 'this' for method call
-LOAD 6  ; Load local var newGuess
-LOAD 4  ; Load local var guess
-FSUB
-INVOKEVIRTUAL 1 ; Call Arithmetic.abs@float
-LOAD 5  ; Load local var eps
-ICMP_LT
-JNZ L24
-JMP L25
-L24:
-JMP L23 ; BREAK
-L25:
-LOAD 6  ; Load local var newGuess
-STORE 4 ; Store to local 'guess'
-JMP L21
-L23:
-LOAD 4  ; Load local var guess
-RET
-.endmethod
-
-.method Arithmetic.exp@float
-.limit stack 4
-.limit locals 11
-PUSH 1
-STORE 7 ; Init term
-PUSH 1
-STORE 8 ; Init sum
-PUSH 1
-STORE 9 ; Init n
-FPUSH 0.0000000000001
-STORE 10 ; Init eps
-L26:
-LOAD_ARG 0 ; Load 'this' for method call
-LOAD 7  ; Load local var term
-INVOKEVIRTUAL 1 ; Call Arithmetic.abs@float
-LOAD 10  ; Load local var eps
-ICMP_GT
-JNZ L27
-JMP L28
-L27:
-LOAD 7  ; Load local var term
-LOAD_ARG 1  ; Load parameter 'x'
-FMUL
-LOAD 9  ; Load local var n
-FDIV
-STORE 7 ; Store to local 'term'
-LOAD 8  ; Load local var sum
-LOAD 7  ; Load local var term
-FADD
-STORE 8 ; Store to local 'sum'
-LOAD 9  ; Load local var n
-PUSH 1
-IADD
-STORE 9 ; Store to local 'n'
-JMP L26
-L28:
-LOAD 8  ; Load local var sum
-RET
-.endmethod
-
-.method Arithmetic.exp@float
-.limit stack 4
-.limit locals 15
-PUSH 1
-STORE 11 ; Init term
-PUSH 1
-STORE 12 ; Init sum
-PUSH 1
-STORE 13 ; Init n
-FPUSH 0.0000000000001
-STORE 14 ; Init eps
-L29:
-LOAD_ARG 0 ; Load 'this' for method call
-LOAD 11  ; Load local var term
-INVOKEVIRTUAL 1 ; Call Arithmetic.abs@float
-LOAD 14  ; Load local var eps
-ICMP_GT
-JNZ L30
-JMP L31
-L30:
-LOAD_ARG 1  ; Load parameter 'x'
-LOAD 13  ; Load local var n
-FDIV
-STORE 11 ; Store to local 'term'
-LOAD 11  ; Load local var term
-STORE 12 ; Store to local 'sum'
-LOAD 13 ; Load current value of n for post increment
+STORE 8 ; Store to local 'sign'
+LOAD 6 ; Load current value of i for post increment
 DUP
 PUSH 1
 IADD
-STORE 13 ; Post increment
+STORE 6 ; Post increment
 POP
-JMP L29
-L31:
-LOAD 12  ; Load local var sum
+L7:
+L8:
+LOAD_ARG 1 ; Load array parameter 'arr'
+LOAD 6  ; Load local var i
+ALOAD
+PUSH 92 ; Push ASCII for char '\0'
+ICMP_NEQ
+JNZ L9
+JMP L10
+L9:
+LOAD_ARG 1 ; Load array parameter 'arr'
+LOAD 6  ; Load local var i
+ALOAD
+PUSH 48 ; Push ASCII for char '0'
+ICMP_GE
+JNZ L14
+JMP L12
+L14:
+LOAD_ARG 1 ; Load array parameter 'arr'
+LOAD 6  ; Load local var i
+ALOAD
+PUSH 57 ; Push ASCII for char '9'
+ICMP_LE
+JNZ L11
+JMP L12
+L11:
+LOAD 7  ; Load local var num
+PUSH 10
+IMUL
+LOAD_ARG 1 ; Load array parameter 'arr'
+LOAD 6  ; Load local var i
+ALOAD
+PUSH 48 ; Push ASCII for char '0'
+ISUB
+IADD
+STORE 7 ; Store to local 'num'
+JMP L13
+L12:
+JMP L10 ; BREAK
+L13:
+LOAD 6 ; Load current value of i for post increment
+DUP
+PUSH 1
+IADD
+STORE 6 ; Post increment
+POP
+JMP L8
+L10:
+LOAD 8  ; Load local var sign
+LOAD 7  ; Load local var num
+IMUL
 RET
 .endmethod
 
-.method Arithmetic.power@float@int
+.method IOHandler.intToString@I@[C
 .limit stack 4
-.limit locals 16
-LOAD_ARG 2  ; Load parameter 'exponent'
+.limit locals 13
+PUSH 0
+STORE 9 ; Init i
+PUSH 0
+STORE 10 ; Init isNeg
+LOAD_ARG 1  ; Load parameter 'x'
 PUSH 0
 ICMP_EQ
-JNZ L32
-JMP L33
-L32:
+JNZ L15
+JMP L16
+L15:
+LOAD_ARG 2 ; Load array parameter 'arr'
+LOAD 9 ; Load current value of i for post increment
+DUP
 PUSH 1
+IADD
+STORE 9 ; Post increment
+PUSH 48 ; Push ASCII for char '0'
+ASTORE ; Store to array element
+LOAD_ARG 2 ; Load array parameter 'arr'
+LOAD 9  ; Load local var i
+PUSH 92 ; Push ASCII for char '\0'
+ASTORE ; Store to array element
 RET
-L33:
-LOAD_ARG 2  ; Load parameter 'exponent'
+L16:
+LOAD_ARG 1  ; Load parameter 'x'
 PUSH 0
 ICMP_LT
-JNZ L34
-JMP L35
-L34:
+JNZ L17
+JMP L18
+L17:
 PUSH 1
-LOAD_ARG 2  ; Load parameter 'exponent'
+STORE 10 ; Store to local 'isNeg'
+LOAD_ARG 1  ; Load parameter 'x'
 INEG
-LOAD_ARG 1  ; Load parameter 'base'
-CALL Arithmetic.power@int@float
-RET
-L35:
-PUSH 1
-STORE 15 ; Init result
-L36:
-LOAD_ARG 2  ; Load parameter 'exponent'
+STORE 1 ; Store to local 'x'
+L18:
+L19:
+LOAD_ARG 1  ; Load parameter 'x'
 PUSH 0
 ICMP_GT
-JNZ L37
-JMP L38
-L37:
-LOAD_ARG 2  ; Load parameter 'exponent'
-PUSH 2
+JNZ L20
+JMP L21
+L20:
+LOAD_ARG 2 ; Load array parameter 'arr'
+LOAD 9 ; Load current value of i for post increment
+DUP
+PUSH 1
+IADD
+STORE 9 ; Post increment
+LOAD_ARG 1  ; Load parameter 'x'
+PUSH 10
 IMOD
+PUSH 48 ; Push ASCII for char '0'
+IADD
+ASTORE ; Store to array element
+PUSH 10
+STORE 1 ; Store to local 'x'
+JMP L19
+L21:
+LOAD 10  ; Load local var isNeg
 PUSH 1
 ICMP_EQ
-JNZ L39
-JMP L40
-L39:
-LOAD 15  ; Load local var result
-LOAD_ARG 1  ; Load parameter 'base'
-FMUL
-STORE 15 ; Store to local 'result'
-L40:
-LOAD_ARG 1  ; Load parameter 'base'
-LOAD_ARG 1  ; Load parameter 'base'
-FMUL
-STORE 1 ; Store to local 'base'
-LOAD_ARG 2  ; Load parameter 'exponent'
+JNZ L22
+JMP L23
+L22:
+LOAD_ARG 2 ; Load array parameter 'arr'
+LOAD 9 ; Load current value of i for post increment
+DUP
+PUSH 1
+IADD
+STORE 9 ; Post increment
+PUSH 45 ; Push ASCII for char '-'
+ASTORE ; Store to array element
+L23:
+LOAD_ARG 2 ; Load array parameter 'arr'
+LOAD 9  ; Load local var i
+PUSH 92 ; Push ASCII for char '\0'
+ASTORE ; Store to array element
+PUSH 0
+STORE 11 ; Init j
+JMP L24
+L25:
+LOAD_ARG 2 ; Load array parameter 'arr'
+LOAD 11  ; Load local var j
+ALOAD
+STORE 12 ; Init temp
+LOAD_ARG 2 ; Load array parameter 'arr'
+LOAD 11  ; Load local var j
+LOAD_ARG 2 ; Load array parameter 'arr'
+LOAD 9  ; Load local var i
+LOAD 11  ; Load local var j
+ISUB
+PUSH 1
+ISUB
+ALOAD
+ASTORE ; Store to array element
+LOAD_ARG 2 ; Load array parameter 'arr'
+LOAD 9  ; Load local var i
+LOAD 11  ; Load local var j
+ISUB
+PUSH 1
+ISUB
+LOAD 12  ; Load local var temp
+ASTORE ; Store to array element
+L26:
+LOAD 11 ; Load current value of j for post increment
+DUP
+PUSH 1
+IADD
+STORE 11 ; Post increment
+L24:
+LOAD 11  ; Load local var j
+LOAD 9  ; Load local var i
 PUSH 2
 IDIV
-STORE 2 ; Store to local 'exponent'
+ICMP_LT
+JNZ L25
+JMP L27
+L27:
+.endmethod
+
+.method IOHandler.doubleToString@F@[C
+.limit stack 4
+.limit locals 20
+LOAD_ARG 1  ; Load parameter 'val'
+STORE 13 ; Init intPart
+LOAD_ARG 1  ; Load parameter 'val'
+LOAD 13  ; Load local var intPart
+FSUB
+STORE 14 ; Init fracPart
+LOAD 14  ; Load local var fracPart
+PUSH 0
+ICMP_LT
+JNZ L28
+JMP L29
+L28:
+LOAD 14  ; Load local var fracPart
+FNEG
+STORE 14 ; Store to local 'fracPart'
+L29:
+PUSH 50
+NEWARRAY C
+STORE 15 ; Store new flattened array to 'intBuf'
+LOAD_ARG 0 ; Load 'this' for method call
+LOAD 13  ; Load local var intPart
+LOAD 15  ; Load local var intBuf
+INVOKEVIRTUAL 4 ; Call IOHandler.intToString@I@[C
+PUSH 0
+STORE 17 ; Init j
+PUSH 0
+STORE 16 ; Init i
+L30:
+LOAD 15 ; Load array variable 'intBuf'
+LOAD 17  ; Load local var j
+ALOAD
+PUSH 92 ; Push ASCII for char '\0'
+ICMP_NEQ
+JNZ L31
+JMP L32
+L31:
+LOAD_ARG 2 ; Load array parameter 'arr'
+LOAD 16  ; Load local var i
+LOAD 15 ; Load array variable 'intBuf'
+LOAD 17  ; Load local var j
+ALOAD
+ASTORE ; Store to array element
+LOAD 16 ; Load current value of i for post increment
+DUP
+PUSH 1
+IADD
+STORE 16 ; Post increment
+POP
+LOAD 17 ; Load current value of j for post increment
+DUP
+PUSH 1
+IADD
+STORE 17 ; Post increment
+POP
+JMP L30
+L32:
+LOAD_ARG 2 ; Load array parameter 'arr'
+LOAD 16 ; Load current value of i for post increment
+DUP
+PUSH 1
+IADD
+STORE 16 ; Post increment
+PUSH 46 ; Push ASCII for char '.'
+ASTORE ; Store to array element
+PUSH 0
+STORE 18 ; Init k
+JMP L33
+L34:
+LOAD 14  ; Load local var fracPart
+PUSH 10
+FMUL
+STORE 14 ; Store to local 'fracPart'
+LOAD 14  ; Load local var fracPart
+STORE 19 ; Init digit
+LOAD_ARG 2 ; Load array parameter 'arr'
+LOAD 16 ; Load current value of i for post increment
+DUP
+PUSH 1
+IADD
+STORE 16 ; Post increment
+PUSH 48 ; Push ASCII for char '0'
+LOAD 19  ; Load local var digit
+IADD
+ASTORE ; Store to array element
+LOAD 14  ; Load local var fracPart
+LOAD 19  ; Load local var digit
+FSUB
+STORE 14 ; Store to local 'fracPart'
+L35:
+LOAD 18 ; Load current value of k for post increment
+DUP
+PUSH 1
+IADD
+STORE 18 ; Post increment
+L33:
+LOAD 18  ; Load local var k
+PUSH 6
+ICMP_LT
+JNZ L34
 JMP L36
+L36:
+LOAD_ARG 2 ; Load array parameter 'arr'
+LOAD 16  ; Load local var i
+PUSH 92 ; Push ASCII for char '\0'
+ASTORE ; Store to array element
+.endmethod
+
+.method IOHandler.readInt
+.limit stack 4
+.limit locals 21
+PUSH 50
+NEWARRAY C
+STORE 20 ; Store new flattened array to 'buf'
+LOAD_ARG 0 ; Load 'this' for method call
+LOAD 20  ; Load local var buf
+PUSH 50
+INVOKEVIRTUAL 2 ; Call IOHandler.readString@[C@I
+LOAD_ARG 0 ; Load 'this' for method call
+LOAD 20  ; Load local var buf
+INVOKEVIRTUAL 3 ; Call IOHandler.stringToInt@[C
+RET
+.endmethod
+
+.method IOHandler.printString@[C
+.limit stack 4
+.limit locals 22
+PUSH 0
+STORE 21 ; Init i
+L37:
+LOAD_ARG 1 ; Load array parameter 'arr'
+LOAD 21  ; Load local var i
+ALOAD
+PUSH 92 ; Push ASCII for char '\0'
+ICMP_NEQ
+JNZ L38
+JMP L39
 L38:
-LOAD 15  ; Load local var result
-RET
-.endmethod
-
-.method Arithmetic.power@float@int
-.limit stack 4
-.limit locals 17
-LOAD_ARG 2  ; Load parameter 'exp'
-PUSH 0
-ICMP_EQ
-JNZ L41
-JMP L42
-L41:
+LOAD_ARG 0 ; Load 'this' for method call
+LOAD_ARG 1 ; Load array parameter 'arr'
+LOAD 21  ; Load local var i
+ALOAD
+INVOKEVIRTUAL 1 ; Call IOHandler.writeChar@C
+LOAD 21 ; Load current value of i for post increment
+DUP
 PUSH 1
-RET
-L42:
-LOAD_ARG 2  ; Load parameter 'exp'
-PUSH 0
-ICMP_LT
-JNZ L43
-JMP L44
-L43:
-FPUSH 1.0
-LOAD_ARG 2  ; Load parameter 'exp'
-INEG
-LOAD_ARG 1  ; Load parameter 'base'
-CALL Arithmetic.power@int@float
-FDIV
-RET
-L44:
-PUSH 1
-STORE 16 ; Init result
-L45:
-LOAD_ARG 2  ; Load parameter 'exp'
-PUSH 0
-ICMP_GT
-JNZ L46
-JMP L47
-L46:
-LOAD_ARG 2  ; Load parameter 'exp'
-PUSH 2
-IMOD
-PUSH 1
-ICMP_EQ
-JNZ L48
-JMP L49
-L48:
-LOAD_ARG 1  ; Load parameter 'base'
-STORE 16 ; Store to local 'result'
-L49:
-LOAD_ARG 1  ; Load parameter 'base'
-STORE 1 ; Store to local 'base'
-PUSH 2
-STORE 2 ; Store to local 'exp'
-JMP L45
-L47:
-LOAD 16  ; Load local var result
-RET
+IADD
+STORE 21 ; Post increment
+POP
+JMP L37
+L39:
 .endmethod
 
-.method Arithmetic.max@int@int
+.method IOHandler.printInt@I
 .limit stack 4
-.limit locals 3
-LOAD_ARG 1  ; Load parameter 'a'
-LOAD_ARG 2  ; Load parameter 'b'
-ICMP_GT
-JNZ L50
-JMP L51
-L50:
-LOAD_ARG 1  ; Load parameter 'a'
-RET
-L51:
-LOAD_ARG 2  ; Load parameter 'b'
-RET
+.limit locals 23
+PUSH 50
+NEWARRAY C
+STORE 22 ; Store new flattened array to 'buf'
+LOAD_ARG 0 ; Load 'this' for method call
+LOAD_ARG 1  ; Load parameter 'x'
+LOAD 22  ; Load local var buf
+INVOKEVIRTUAL 4 ; Call IOHandler.intToString@I@[C
+LOAD_ARG 0 ; Load 'this' for method call
+LOAD 22  ; Load local var buf
+INVOKEVIRTUAL 7 ; Call IOHandler.printString@[C
 .endmethod
 
-.method Arithmetic.max@float@float
+.method IOHandler.printDouble@F
 .limit stack 4
-.limit locals 3
-LOAD_ARG 1  ; Load parameter 'a'
-LOAD_ARG 2  ; Load parameter 'b'
-FCMP_GT
-JNZ L52
-JMP L53
-L52:
-LOAD_ARG 1  ; Load parameter 'a'
-RET
-L53:
-LOAD_ARG 2  ; Load parameter 'b'
-RET
-.endmethod
-
-.method Arithmetic.max@float@float
-.limit stack 4
-.limit locals 3
-LOAD_ARG 1  ; Load parameter 'a'
-LOAD_ARG 2  ; Load parameter 'b'
-FCMP_GT
-JNZ L54
-JMP L55
-L54:
-LOAD_ARG 1  ; Load parameter 'a'
-RET
-L55:
-LOAD_ARG 2  ; Load parameter 'b'
-RET
-.endmethod
-
-.method Arithmetic.min@int@int
-.limit stack 4
-.limit locals 3
-LOAD_ARG 1  ; Load parameter 'a'
-LOAD_ARG 2  ; Load parameter 'b'
-ICMP_LT
-JNZ L56
-JMP L57
-L56:
-LOAD_ARG 1  ; Load parameter 'a'
-RET
-L57:
-LOAD_ARG 2  ; Load parameter 'b'
-RET
-.endmethod
-
-.method Arithmetic.min@float@float
-.limit stack 4
-.limit locals 3
-LOAD_ARG 1  ; Load parameter 'a'
-LOAD_ARG 2  ; Load parameter 'b'
-FCMP_LT
-JNZ L58
-JMP L59
-L58:
-LOAD_ARG 1  ; Load parameter 'a'
-RET
-L59:
-LOAD_ARG 2  ; Load parameter 'b'
-RET
-.endmethod
-
-.method Arithmetic.min@float@float
-.limit stack 4
-.limit locals 3
-LOAD_ARG 1  ; Load parameter 'a'
-LOAD_ARG 2  ; Load parameter 'b'
-FCMP_GT
-JNZ L60
-JMP L61
-L60:
-LOAD_ARG 1  ; Load parameter 'a'
-RET
-L61:
-LOAD_ARG 2  ; Load parameter 'b'
-RET
+.limit locals 24
+PUSH 100
+NEWARRAY C
+STORE 23 ; Store new flattened array to 'buf'
+LOAD_ARG 0 ; Load 'this' for method call
+LOAD_ARG 1  ; Load parameter 'x'
+LOAD 23  ; Load local var buf
+INVOKEVIRTUAL 5 ; Call IOHandler.doubleToString@F@[C
+LOAD_ARG 0 ; Load 'this' for method call
+LOAD 23  ; Load local var buf
+INVOKEVIRTUAL 7 ; Call IOHandler.printString@[C
 .endmethod
