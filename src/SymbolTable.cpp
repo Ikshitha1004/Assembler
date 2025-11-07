@@ -288,5 +288,7 @@ std::vector<RelocationEntry> SymbolTable::generate_relocation_table() const {
             relos.push_back({ref.from_code_offset, ref.label, ref.section,ref.is_method_ref});
        // }
     }
+    std::cout<<"[SymbolTable] Generated relocation table with "
+             << relos.size() << " entries.\n";
     return relos;
 }

@@ -27,7 +27,7 @@ std::pair<bool,std::vector<std::string>>Assembler::assemble(const std::string& i
     auto tokens = tokenizer.tokenize();
     std::cout << "[Tokenizer] " << tokens.size() << " tokens read from " << inputFile << "\n";
     std::cout << "=== TOKENS ===\n";
-    print_tokens(tokens);
+   // print_tokens(tokens);
 
     //  Parse
     Parser parser(tokens);
@@ -97,17 +97,17 @@ std::pair<bool,std::vector<std::string>>Assembler::assemble(const std::string& i
     auto irrep = assembler::IRBuilder::build(instructions);
 
     std::cout << "\n=== IR WORDS ===\n";
-    for (size_t i = 0; i < irrep.words.size(); ++i) {
-        const auto &w = irrep.words[i];
-        std::cout << i << ": opcode=0x"
-                  << std::hex << std::setw(2) << std::setfill('0')
-                  << (int)w.opcode << std::dec;
-    for (auto &v : w.imm) {
-        std::cout<<"ssss "<<v.isFloat?"(float)":"(int)";
-        std::cout << " " << (v.isFloat ? v.floatValue : v.intValue);
-    }        
-    std::cout << "   (src line " << w.src_line << ")\n";
-    }
+    // for (size_t i = 0; i < irrep.words.size(); ++i) {
+    //     const auto &w = irrep.words[i];
+    //     std::cout << i << ": opcode=0x"
+    //               << std::hex << std::setw(2) << std::setfill('0')
+    //               << (int)w.opcode << std::dec;
+    // for (auto &v : w.imm) {
+    //    // std::cout<<"ssss "<<v.isFloat?"(float)":"(int)";
+    //     std::cout << " " << (v.isFloat ? v.floatValue : v.intValue);
+    // }        
+    // std::cout << "   (src line " << w.src_line << ")\n";
+    // }
 
     // Convert IR → raw bytecode
    std::vector<uint8_t> code;
@@ -141,9 +141,14 @@ for (auto &w : irrep.words) {
     std::size_t instrSize = instruction_size(static_cast<OpCode>(w.opcode));
     std::size_t operandSize = (instrSize > 1) ? instrSize - 1 : 0;
 
+
     // Write numeric immediates
     for (size_t i = 0; i < w.imm.size(); ++i) {
-        const Value &v = w.imm[i];
+         const Value &v = w.imm[i];
+      if (w.opcode == static_cast<uint8_t>(OpCode::CALL) && i == 1) {
+        code.push_back(static_cast<uint8_t>(v.intValue & 0xFF));
+        continue;
+    }
         if (v.isFloat) {
             uint32_t fbits;
             std::memcpy(&fbits, &v.floatValue, sizeof(fbits));
@@ -153,6 +158,7 @@ for (auto &w : irrep.words) {
             for (size_t b = 0; b < operandSize; ++b)
                 code.push_back((v.intValue >> (8*b)) & 0xFF);
         }
+
     }
 
     // Write string immediates for NEW

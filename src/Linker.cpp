@@ -41,7 +41,7 @@ static std::string read_string_with_len(std::ifstream &in)
 
 static void print_bytes(const std::vector<uint8_t> &data, const std::string &label = "Code")
 {
-    std::cout << "[DEBUG] " << label << " bytes in hex:" << std::endl;
+    //std::cout << "[DEBUG] " << label << " bytes in hex:" << std::endl;
     for (size_t i = 0; i < data.size(); ++i)
     {
         std::cout << "0x"
@@ -138,9 +138,9 @@ void Linker::addObjectFile(const std::string &path)
         {
             ClassInfo cls;
             cls.name = read_string_with_len(in);
-            std::cout << "[DEBUG] Reading class: " << cls.name << std::endl;
+            //std::cout << "[DEBUG] Reading class: " << cls.name << std::endl;
             cls.super_name = read_string_with_len(in);
-            std::cout << "[DEBUG] Super class: " << cls.super_name << std::endl;
+            //std::cout << "[DEBUG] Super class: " << cls.super_name << std::endl;
             uint32_t methodCount = read_u32(in);
             for (uint32_t j = 0; j < methodCount; ++j)
             {
@@ -367,7 +367,13 @@ std::size_t Linker::preparePatch(const Module &m, uint32_t relOffset)
         throw std::runtime_error("Invalid patch offset in " + m.filename);
 
     uint8_t opcode = m.code[relOffset - 1];
+    uint8_t prev = m.code[relOffset - 2];
+    std::cout << "[Linker] Preparing patch at offset " << relOffset
+              << " opcode 0x" << std::hex << static_cast<int>(prev) << std::dec << "\n";
     auto op = static_cast<OpCode>(opcode);
+    // std::cout << "[Linker] Preparing patch at offset " << relOffset
+    //           << " opcode 0x" << std::hex << static_cast<int>(opcode) << std::dec
+    //           << " (" << opcode_to_string(op) << ")\n";
     std::size_t instrSize = instruction_size(op);
     std::size_t patchBytes = (instrSize > 1) ? instrSize - 1 : 0;
 

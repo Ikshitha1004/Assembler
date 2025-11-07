@@ -844,6 +844,7 @@ if (oc == OpCode::INVOKEVIRTUAL || oc == OpCode::INVOKESPECIAL) {
                             //         << " at line " << ins.src_line << "\n";
                         }
                     }
+                    symtab.advance_lc(1);
             }
         }
 
