@@ -79,214 +79,373 @@ static vector<uint8_t> slurp_file(const string &path) {
 struct RelocEntry {
     uint32_t offset;
     string symbol;
+    uint32_t is_method_ref;
     uint32_t section;
 };
+// Updated to match Linker::writeFinalVM() classMeta layout exactly
+// static bool parse_and_dump_class_meta(const vector<uint8_t>& data, size_t offset, size_t size) {
+//     size_t p = offset;
+//     const size_t end = offset + size;
+
+//     if (offset + 4 > data.size() || offset + 4 > end) return false;
+//     uint32_t classCount = read_u32(data, p); p += 4;
+
+//     std::cout << "\n=== CLASS METADATA ===\n";
+//     std::cout << "classCount = " << classCount << "\n";
+
+//     for (uint32_t i = 0; i < classCount; ++i) {
+//         // read u8 nameLen
+//         if (p + 1 > data.size() || p + 1 > end) return false;
+//         uint8_t nameLen = read_u8(data, p); p += 1;
+
+//         if (p + nameLen > data.size() || p + nameLen > end) return false;
+//         string className;
+//         if (nameLen) {
+//             className.assign(reinterpret_cast<const char*>(&data[p]), nameLen);
+//             p += nameLen;
+//         }
+
+//         if (p + 4 > data.size() || p + 4 > end) return false;
+//         uint32_t superIdx_u = read_u32(data, p); p += 4;
+//         int32_t superIdx = static_cast<int32_t>(superIdx_u); // -1 means none
+
+//         // field count
+//         if (p + 4 > data.size() || p + 4 > end) return false;
+//         uint32_t fieldsCount = read_u32(data, p); p += 4;
+
+//         // read fields
+//         vector<pair<string,uint32_t>> fields;
+//         for (uint32_t f = 0; f < fieldsCount; ++f) {
+//             if (p + 1 > data.size() || p + 1 > end) return false;
+//             uint8_t fnameLen = read_u8(data, p); p += 1;
+
+//             if (p + fnameLen > data.size() || p + fnameLen > end) return false;
+//             string fname;
+//             if (fnameLen) {
+//                 fname.assign(reinterpret_cast<const char*>(&data[p]), fnameLen);
+//                 p += fnameLen;
+//             }
+
+//             if (p + 4 > data.size() || p + 4 > end) return false;
+//             uint32_t ftype = read_u8(data, p); p += 1;
+
+//             fields.emplace_back(fname, ftype);
+//         }
+
+//         // method count
+//         if (p + 4 > data.size() || p + 4 > end) return false;
+//         uint32_t methodsCount = read_u32(data, p); p += 4;
+
+//         vector<pair<string,uint32_t>> methods;
+//         for (uint32_t m = 0; m < methodsCount; ++m) {
+//             if (p + 1 > data.size() || p + 1 > end) return false;
+//             uint8_t mNameLen = read_u8(data, p); p += 1;
+
+//             if (p + mNameLen + 4 > data.size() || p + mNameLen + 4 > end) return false;
+//             string mName;
+//             if (mNameLen) {
+//                 mName.assign(reinterpret_cast<const char*>(&data[p]), mNameLen);
+//                 p += mNameLen;
+//             }
+
+//             uint32_t absOffset = read_u32(data, p); p += 4;
+//             methods.emplace_back(mName, absOffset);
+//         }
+
+//         // Print class info
+//         std::cout << "\nClass[" << i << "]: \"" << className << "\"\n";
+//         std::cout << "  superIndex = " << superIdx << "\n";
+//         std::cout << "  fieldsCount = " << fieldsCount << "\n";
+//         std::cout << "  methodsCount = " << methodsCount << "\n";
+
+//         if (!fields.empty()) {
+//             std::cout << "  Fields:\n";
+//             for (size_t fi = 0; fi < fields.size(); ++fi) {
+//                 std::cout << "    [" << fi << "] name=\"" << fields[fi].first
+//                      << "\" typeCode=" << fields[fi].second << "\n";
+//             }
+//         }
+
+//         if (!methods.empty()) {
+//             std::cout << "  Methods:\n";
+//             for (size_t mi = 0; mi < methods.size(); ++mi) {
+//                 std::cout << "    [" << mi << "] name=\"" << methods[mi].first
+//                      << "\" -> offset=" << methods[mi].second << "\n";
+//             }
+//         }
+//     }
+
+//     // report any extra bytes (helpful for debugging)
+//     if (p != end) {
+//         std::cout << "(note: class meta parsed, " << (end - p) << " extra bytes remain)\n";
+//     }
+//     return true;
+// }
+static bool parse_and_dump_class_meta_obj(const std::vector<uint8_t>& data, size_t offset, size_t size) {
+    size_t p = offset;
+    const size_t end = offset + size;
+
+    auto fail = [&](const char *msg) -> bool {
+        std::cerr << "[class_meta_parse] " << msg << " (p=" << p << ", end=" << end << ")\n";
+        return false;
+    };
+
+    if (p + 4 > data.size()) return fail("Missing classCount");
+    uint32_t classCount = read_u32(data, p); p += 4;
+
+    std::cout << "\n=== CLASS METADATA ===\n";
+    std::cout << "classCount = " << classCount << "\n";
+
+    for (uint32_t i = 0; i < classCount; ++i) {
+        // class name
+        uint32_t classNameLen = read_u32(data, p); p += 4;
+        std::string className(reinterpret_cast<const char*>(&data[p]), classNameLen);
+        p += classNameLen;
+
+        // super name
+        uint32_t superNameLen = read_u32(data, p); p += 4;
+        std::string superName(reinterpret_cast<const char*>(&data[p]), superNameLen);
+        p += superNameLen;
+
+        std::cout << "\nClass[" << i << "] name=\"" << className
+                  << "\" super=\"" << superName << "\"\n";
+
+        // --- Methods ---
+        uint32_t methodCount = read_u32(data, p); p += 4;
+        std::cout << "  Methods: " << methodCount << "\n";
+        for (uint32_t m = 0; m < methodCount; ++m) {
+            uint32_t mlen = read_u32(data, p); p += 4;
+            std::string mName(reinterpret_cast<const char*>(&data[p]), mlen);
+            p += mlen;
+            uint32_t addr = read_u32(data, p); p += 4;
+
+            std::cout << "    [" << m << "] " << mName << " @ " << addr << "\n";
+        }
+
+        // --- Fields ---
+        uint32_t fieldCount = read_u32(data, p); p += 4;
+        std::cout << "  Fields: " << fieldCount << "\n";
+        for (uint32_t f = 0; f < fieldCount; ++f) {
+            uint32_t fnameLen = read_u32(data, p); p += 4;
+            std::string fname(reinterpret_cast<const char*>(&data[p]), fnameLen);
+            p += fnameLen;
+
+            uint32_t ownerLen = read_u32(data, p); p += 4;
+            std::string owner(reinterpret_cast<const char*>(&data[p]), ownerLen);
+            p += ownerLen;
+
+            uint32_t descLen = read_u32(data, p); p += 4;
+            std::string desc(reinterpret_cast<const char*>(&data[p]), descLen);
+            p += descLen;
+
+            uint32_t index = read_u32(data, p); p += 4;
+
+            std::cout << "    [" << f << "] name=\"" << fname
+                      << "\" owner=\"" << owner
+                      << "\" desc=\"" << desc
+                      << "\" idx=" << index << "\n";
+        }
+    }
+
+    if (p != end) {
+        std::cout << "(note: parsed metadata, " << (end - p)
+                  << " trailing bytes remain)\n";
+    }
+
+    return true;
+}
+
 // ------------------------------------------------------------------------------------------
 // UPDATED parse_vmobj()
 // ------------------------------------------------------------------------------------------
-static bool parse_vmobj(const vector<uint8_t>& data,
-                        vector<uint8_t>& code_out,
-                        unordered_map<string,uint32_t>& label_addr_out,
-                        unordered_map<string,uint32_t>& method_addr_out,
-                        unordered_map<string,uint32_t>& field_addr_out,
-                        vector<RelocEntry>& relocs_out)
+static bool parse_vmobj(const std::vector<uint8_t>& data,
+                        std::vector<uint8_t>& code_out,
+                        std::unordered_map<std::string,uint32_t>& label_addr_out,
+                        std::unordered_map<std::string,uint32_t>& method_addr_out,
+                        std::unordered_map<std::string,uint32_t>& field_addr_out,
+                        std::vector<RelocEntry>& relocs_out,
+                        size_t &classMetaOffset,
+                        size_t &classMetaSize)
+
 {
-    if (data.size() < 28) return false;
+    auto read_u32 = [](const std::vector<uint8_t>& d, size_t pos) -> uint32_t {
+        return static_cast<uint32_t>(d[pos]) |
+               (static_cast<uint32_t>(d[pos+1]) << 8) |
+               (static_cast<uint32_t>(d[pos+2]) << 16) |
+               (static_cast<uint32_t>(d[pos+3]) << 24);
+    };
+
+    auto read_u8 = [](const std::vector<uint8_t>& d, size_t pos) -> uint8_t {
+        return d[pos];
+    };
+
+    auto fail = [](const std::string& msg) -> bool {
+        std::cerr << "VMO parse failed: " << msg << "\n";
+        return false;
+    };
+
+    if (data.size() < 28)
+        return fail("file too small (<28 bytes)");
+
     uint32_t magic = read_u32(data, 0);
     if (magic != OBJ_MAGIC) return false;
     uint32_t version = read_u32(data, 4);
-    if (version != OBJ_VERSION) {
+     if (version != OBJ_VERSION) {
         cerr << "Unsupported VMO version: " << version << "\n";
         return false;
-    }
-
+     }
     uint32_t codeSize     = read_u32(data, 8);
     uint32_t symtabOffset = read_u32(data, 12);
     uint32_t symtabSize   = read_u32(data, 16);
     uint32_t relocOffset  = read_u32(data, 20);
     uint32_t relocCount   = read_u32(data, 24);
 
+    std::cerr << "[VMO HEADER] magic=" << magic
+              << " version=" << version
+              << " codeSize=" << codeSize
+              << " symtabOffset=" << symtabOffset
+              << " symtabSize=" << symtabSize
+              << " relocOffset=" << relocOffset
+              << " relocCount=" << relocCount << "\n";
+
+    if (magic != OBJ_MAGIC)
+        return fail("bad magic (not OBJ_MAGIC)");
+    if (version != OBJ_VERSION)
+        return fail("unsupported OBJ_VERSION");
+
     size_t codeStart = 28;
-    if (codeStart + codeSize > data.size()) {
-        cerr << "VMO: code out of range\n";
-        return false;
-    }
+    if (codeStart + codeSize > data.size())
+        return fail("code section out of range");
 
     code_out.assign(data.begin()+codeStart, data.begin()+codeStart+codeSize);
 
-    // Parse symbol table
     if (symtabOffset == 0 || symtabOffset + 4 > data.size()) {
-        // no symbol table present
+        std::cerr << "[VMO] No symbol table found.\n";
         return true;
     }
 
     size_t p = symtabOffset;
-    size_t symEnd = symtabOffset + symtabSize;
-    if (symEnd > data.size()) symEnd = data.size();
+    size_t symEnd = std::min<size_t>(symtabOffset + symtabSize, data.size());
 
     // --- LABELS ---
-    if (p + 4 > symEnd) return false;
+    if (p + 4 > symEnd) return fail("label count out of range");
     uint32_t labelCount = read_u32(data, p); p += 4;
+    std::cerr << "[VMO] Label count: " << labelCount << "\n";
+
     for (uint32_t i = 0; i < labelCount; ++i) {
-        if (p + 4 > symEnd) return false;
+        if (p + 4 > symEnd) return fail("label name length out of range");
         uint32_t namelen = read_u32(data, p); p += 4;
-        string name;
+        std::string name;
         if (namelen) {
-            if (p + namelen > symEnd) return false;
+            if (p + namelen > symEnd) return fail("label name exceeds bounds");
             name.assign(reinterpret_cast<const char*>(&data[p]), namelen);
             p += namelen;
         }
-        if (p + 4 > symEnd) return false;
+        if (p + 4 > symEnd) return fail("label address out of range");
         uint32_t addr = read_u32(data, p); p += 4;
-        // skip line, col, section (3 * u32)
-        if (p + 12 > symEnd) return false;
-        (void)read_u32(data, p); p += 4;
-        (void)read_u32(data, p); p += 4;
-        (void)read_u32(data, p); p += 4;
+        if (p + 12 > symEnd) return fail("label metadata out of range");
+        p += 12;
         label_addr_out[name] = addr;
     }
 
     // --- METHODS ---
-    if (p + 4 > symEnd) return false;
+    if (p + 4 > symEnd) return fail("method count out of range");
     uint32_t methodCount = read_u32(data, p); p += 4;
+    std::cerr << "[VMO] Method count: " << methodCount << "\n";
+
     for (uint32_t i = 0; i < methodCount; ++i) {
-        if (p + 4 > symEnd) return false;
+        if (p + 4 > symEnd) return fail("method keylen out of range");
         uint32_t keylen = read_u32(data, p); p += 4;
-        string fullName;
+        std::string fullName;
         if (keylen) {
-            if (p + keylen > symEnd) return false;
+            if (p + keylen > symEnd) return fail("method name exceeds bounds");
             fullName.assign(reinterpret_cast<const char*>(&data[p]), keylen);
             p += keylen;
         }
 
-        if (p + 4 > symEnd) return false;
+        if (p + 4 > symEnd) return fail("shortlen out of range");
         uint32_t shortlen = read_u32(data, p); p += 4;
-        if (shortlen) {
-            if (p + shortlen > symEnd) return false;
-            // skip short name
-            p += shortlen;
-        }
+        if (p + shortlen > symEnd) return fail("short name exceeds bounds");
+        p += shortlen;
 
-        if (p + 4 > symEnd) return false;
+        if (p + 4 > symEnd) return fail("siglen out of range");
         uint32_t siglen = read_u32(data, p); p += 4;
-        if (siglen) {
-            if (p + siglen > symEnd) return false;
-            // skip signature
-            p += siglen;
-        }
+        if (p + siglen > symEnd) return fail("signature exceeds bounds");
+        p += siglen;
 
-        if (p + 4 > symEnd) return false;
+        if (p + 4 > symEnd) return fail("method address out of range");
         uint32_t addr = read_u32(data, p); p += 4;
 
-        // skip size, stack_limit, locals_limit (3 * u32)
-        if (p + 12 > symEnd) return false;
+        if (p + 12 > symEnd) return fail("method metadata out of range");
         p += 12;
 
         method_addr_out[fullName] = addr;
     }
+// --- CLASSES ---
+if (p + 4 > symEnd)
+    return fail("class count out of range");
 
-    // --- CLASSES ---
-    if (p + 4 > symEnd) return false;
-    uint32_t classCount = read_u32(data, p); p += 4;
-    for (uint32_t ci = 0; ci < classCount; ++ci) {
-        // class name (u32 len + bytes)
-        if (p + 4 > symEnd) return false;
-        uint32_t nameLen = read_u32(data, p); p += 4;
-        string clsName;
-        if (nameLen) {
-            if (p + nameLen > symEnd) return false;
-            clsName.assign(reinterpret_cast<const char*>(&data[p]), nameLen);
-            p += nameLen;
-        }
+uint32_t classCount = read_u32(data, p);
+p += 4;
 
-        // super name
-        if (p + 4 > symEnd) return false;
-        uint32_t superLen = read_u32(data, p); p += 4;
-        string superName;
-        if (superLen) {
-            if (p + superLen > symEnd) return false;
-            superName.assign(reinterpret_cast<const char*>(&data[p]), superLen);
-            p += superLen;
-        }
+std::cerr << "[VMO] Class count: " << classCount << "\n";
 
-        // methods in class
-        if (p + 4 > symEnd) return false;
-        uint32_t methodInClassCount = read_u32(data, p); p += 4;
-        for (uint32_t j = 0; j < methodInClassCount; ++j) {
-            if (p + 4 > symEnd) return false;
-            uint32_t mlen = read_u32(data, p); p += 4;
-            string mname;
-            if (mlen) {
-                if (p + mlen > symEnd) return false;
-                mname.assign(reinterpret_cast<const char*>(&data[p]), mlen);
-                p += mlen;
-            }
-            if (p + 4 > symEnd) return false;
-            uint32_t addr = read_u32(data, p); p += 4;
-            // store under "Class::method" to avoid collisions
-            method_addr_out[clsName + "::" + mname] = addr;
-        }
+// The class metadata block starts just before classCount
+classMetaOffset = p - 4;  // rewind 4 bytes to include the classCount field
+classMetaSize   = symEnd - classMetaOffset;
 
-        // fields in class
-        if (p + 4 > symEnd) return false;
-        uint32_t fieldCount = read_u32(data, p); p += 4;
-        for (uint32_t k = 0; k < fieldCount; ++k) {
-            if (p + 4 > symEnd) return false;
-            uint32_t nlen = read_u32(data, p); p += 4;
-            string fname;
-            if (nlen) {
-                if (p + nlen > symEnd) return false;
-                fname.assign(reinterpret_cast<const char*>(&data[p]), nlen);
-                p += nlen;
-            }
-            if (p + 4 > symEnd) return false;
-            uint32_t ownerLen = read_u32(data, p); p += 4;
-            string owner;
-            if (ownerLen) {
-                if (p + ownerLen > symEnd) return false;
-                owner.assign(reinterpret_cast<const char*>(&data[p]), ownerLen);
-                p += ownerLen;
-            }
-            if (p + 4 > symEnd) return false;
-            uint32_t descLen = read_u32(data, p); p += 4;
-            string desc;
-            if (descLen) {
-                if (p + descLen > symEnd) return false;
-                desc.assign(reinterpret_cast<const char*>(&data[p]), descLen);
-                p += descLen;
-            }
-            if (p + 4 > symEnd) return false;
-            uint8_t fIndex = read_u8(data, p); p += 1;
+std::cerr << "[VMO] Delegating to parse_and_dump_class_meta() "
+          << "(offset=" << classMetaOffset
+          << ", size=" << classMetaSize << ")\n";
 
-            // store field as "Owner.field" -> index (and we could also store descriptor if needed)
-            field_addr_out[owner + "." + fname] = fIndex;
-            (void)desc;
-        }
-    }
+// Use the standard metadata parser
+if (!parse_and_dump_class_meta_obj(data, classMetaOffset, classMetaSize))
+    return fail("class meta parse failed");
 
-    // --- RELOCATIONS ---
+// After class meta parsing, advance p to the end of the section
+p = symEnd;
+
+
+       // --- RELOCATIONS ---
     if (relocOffset != 0 && relocOffset + 4 <= data.size()) {
         size_t p2 = relocOffset;
         uint32_t rc = read_u32(data, p2); p2 += 4;
+        std::cerr << "[VMO] Relocation count: " << rc << "\n";
+
         for (uint32_t i = 0; i < rc; ++i) {
-            if (p2 + 4 > data.size()) return false;
+            if (p2 + 4 > data.size()) return fail("reloc offset out of range");
             uint32_t off = read_u32(data, p2); p2 += 4;
-            if (p2 + 4 > data.size()) return false;
+
+            if (p2 + 4 > data.size()) return fail("reloc name len out of range");
             uint32_t namelen = read_u32(data, p2); p2 += 4;
-            string sym;
+            std::string sym;
             if (namelen) {
-                if (p2 + namelen > data.size()) return false;
+                if (p2 + namelen > data.size()) return fail("reloc name exceeds bounds");
                 sym.assign(reinterpret_cast<const char*>(&data[p2]), namelen);
                 p2 += namelen;
             }
-            if (p2 + 4 > data.size()) return false;
+
+            // new field: is_method_ref (optional)
+            uint32_t isMethodRef = 0;
+            if (p2 + 4 <= data.size()) {
+                isMethodRef = read_u32(data, p2);
+                p2 += 4;
+            } else {
+                std::cerr << "[VMO WARN] relocation missing is_method_ref, assuming 0\n";
+            }
+
+            if (p2 + 4 > data.size()) return fail("reloc section out of range");
             uint32_t sect = read_u32(data, p2); p2 += 4;
-            relocs_out.push_back({off, sym, sect});
+
+            relocs_out.push_back({off, sym, isMethodRef, sect});
         }
     }
 
+
+    std::cerr << "[VMO] Parsed successfully.\n";
     return true;
 }
+
 
 
 // parse_vm_exec stays the same — kept here for completeness
@@ -438,31 +597,35 @@ int main(int argc, char** argv) {
 
     bool is_obj = false;
     if (filedata.size() >= 4 && read_u32(filedata, 0) == OBJ_MAGIC) {
-        is_obj = true;
-        bool ok = parse_vmobj(filedata, code, labels, methods, fields, relocs);
-        if (!ok) {
-            cerr << "Failed to parse .vmobj file\n";
-            return 1;
-        }
-        cout << "[VMOBJ] code bytes: " << code.size()
-             << ", labels: " << labels.size()
-             << ", methods: " << methods.size()
-             << ", fields: " << fields.size()
-             << ", relocs: " << relocs.size() << "\n";
+    is_obj = true;
+    size_t classMetaOffset = 0, classMetaSize = 0;
+    bool ok = parse_vmobj(filedata, code, labels, methods, fields, relocs,
+                          classMetaOffset, classMetaSize);
+    if (!ok) {
+        cerr << "Failed to parse .vmobj file\n";
+        return 1;
+    }
 
-        // If object had classes/fields, print a brief listing
-        if (!fields.empty()) {
-            cout << "\n=== FIELDS (object) ===\n";
-            for (const auto &kv : fields) {
-                cout << kv.first << " -> index=" << kv.second << "\n";
-            }
-        }
-        if (!methods.empty()) {
-            cout << "\n=== METHODS (object) ===\n";
-            for (const auto &kv : methods) {
-                cout << kv.first << " -> addr=" << kv.second << "\n";
-            }
-        }
+    std::cout << "[VMOBJ] code bytes: " << code.size()
+         << ", labels: " << labels.size()
+         << ", methods: " << methods.size()
+         << ", fields: " << fields.size()
+         << ", relocs: " << relocs.size()
+         << ", classMetaOffset=" << classMetaOffset
+         << ", classMetaSize=" << classMetaSize << "\n";
+
+
+    if (!fields.empty()) {
+        std::cout << "\n=== FIELDS (object) ===\n";
+        for (const auto &kv : fields)
+            std::cout << kv.first << " -> index=" << kv.second << "\n";
+    }
+    if (!methods.empty()) {
+        std::cout << "\n=== METHODS (object) ===\n";
+        for (const auto &kv : methods)
+            std::cout << kv.first << " -> addr=" << kv.second << "\n";
+    }
+
     } else {
         // Try executable .vm
         size_t codeOffset=0, codeSize=0, constPoolOffset=0, constPoolSize=0;
@@ -473,7 +636,7 @@ int main(int argc, char** argv) {
         if (!ok) { cerr << "Unknown file format or unsupported magic\n"; return 1; }
         code.assign(filedata.begin()+codeOffset, filedata.begin()+codeOffset+codeSize);
 
-        cout << "[VM_EXEC] codeOffset=" << codeOffset
+        std::cout << "[VM_EXEC] codeOffset=" << codeOffset
             << " codeSize=" << codeSize
             << " constPoolOffset=" << constPoolOffset
             << " constPoolSize=" << constPoolSize
@@ -496,9 +659,9 @@ int main(int argc, char** argv) {
     for (const auto &r : relocs) reloc_map[r.offset] = r;
 
     // Disassemble: iterate through code bytes
-    cout << "\n=== DISASSEMBLY ===\n";
+    std::cout << "\n=== DISASSEMBLY ===\n";
     size_t ip = 0;
-    cout << std::dec; // default to decimal for readability
+    std::cout << std::dec; // default to decimal for readability
 
     while (ip < code.size()) {
         uint8_t opc = read_u8(code, ip);
@@ -506,27 +669,27 @@ int main(int argc, char** argv) {
         size_t instrSize = instruction_size(oc);
 
         if (ip + instrSize > code.size()) {
-            cout << hex << setw(4) << setfill('0') << ip << ": ";
-            cout << opcode_to_string(oc) << " [truncated]\n";
+            std::cout << hex << setw(4) << setfill('0') << ip << ": ";
+            std::cout << opcode_to_string(oc) << " [truncated]\n";
             break;
         }
 
         // --- Print raw bytes ---
-        cout << hex << setw(4) << setfill('0') << ip << ": ";
+        std::cout << hex << setw(4) << setfill('0') << ip << ": ";
         for (size_t b = 0; b < instrSize; ++b)
-            cout << setw(2) << setfill('0') << (int)code[ip + b] << " ";
+            std::cout << setw(2) << setfill('0') << (int)code[ip + b] << " ";
 
         // --- Print mnemonic ---
         string mnem = opcode_to_string(oc);
-        cout << "   " << left << setw(12) << mnem << right;
+        std::cout << "   " << left << setw(12) << mnem << right;
 
         // --- Decode operands ---
         if (instrSize == 3) {
             // 16-bit operand (jumps)
             uint16_t val = read_u16(code, ip + 1);
-            cout << " " << dec << val;
+            std::cout << " " << dec << val;
             auto it = reloc_map.find(ip + 1);
-            if (it != reloc_map.end()) cout << "    ; RELOC -> " << it->second.symbol;
+            if (it != reloc_map.end()) std::cout << "    ; RELOC -> " << it->second.symbol;
         }
         else if (instrSize == 5) {
             // 32-bit operand (PUSH, FPUSH, CALL, etc.)
@@ -534,53 +697,53 @@ int main(int argc, char** argv) {
             if (is_float_opcode(oc)) {
                 float f;
                 std::memcpy(&f, &raw, sizeof(f));
-                cout << " " << std::fixed << std::setprecision(6) << f;
+                std::cout << " " << std::fixed << std::setprecision(6) << f;
             } else {
                 int32_t ival = static_cast<int32_t>(raw);
-                cout << " " << dec << ival;
+                std::cout << " " << dec << ival;
             }
             auto it = reloc_map.find(ip + 1);
-            if (it != reloc_map.end()) cout << "    ; RELOC -> " << it->second.symbol;
+            if (it != reloc_map.end()) std::cout << "    ; RELOC -> " << it->second.symbol;
         }
         else if (instrSize == 2) {
             // 8-bit operand (SYS_CALL, NEWARRAY, etc.)
             uint8_t subcode = read_u8(code, ip + 1);
             if (oc == OpCode::SYS_CALL) {
-                cout << " " << syscall_to_mnemonic(subcode);
+                std::cout << " " << syscall_to_mnemonic(subcode);
             } else {
-                cout << " " << (int)subcode;
+                std::cout << " " << (int)subcode;
             }
         }
 
-        cout << "\n";
+        std::cout << "\n";
         ip += instrSize;
     }
 
     // Also dump relocation table (if present)
     if (!relocs.empty()) {
-        cout << "\n=== RELOCATION TABLE ===\n";
+        std::cout << "\n=== RELOCATION TABLE ===\n";
         for (const auto &r : relocs) {
-            cout << "offset=" << dec << r.offset << " symbol=\"" << r.symbol << "\" section=" << r.section << "\n";
+            std::cout << "offset=" << dec << r.offset << " symbol=\"" << r.symbol << "\" section=" << r.section << "\n";
         }
     }
 
     // And dump labels/methods/fields (if present)
     if (!labels.empty()) {
-        cout << "\n=== LABELS ===\n";
+        std::cout << "\n=== LABELS ===\n";
         for (const auto &kv : labels) {
-            cout << kv.first << " -> " << kv.second << "\n";
+            std::cout << kv.first << " -> " << kv.second << "\n";
         }
     }
     if (!methods.empty()) {
-        cout << "\n=== METHODS ===\n";
+        std::cout << "\n=== METHODS ===\n";
         for (const auto &kv : methods) {
-            cout << kv.first << " -> " << kv.second << "\n";
+            std::cout << kv.first << " -> " << kv.second << "\n";
         }
     }
     if (!fields.empty()) {
-        cout << "\n=== FIELDS ===\n";
+        std::cout << "\n=== FIELDS ===\n";
         for (const auto &kv : fields) {
-            cout << kv.first << " -> " << kv.second << "\n";
+            std::cout << kv.first << " -> " << kv.second << "\n";
         }
     }
 

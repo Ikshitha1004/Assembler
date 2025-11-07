@@ -103,7 +103,7 @@ std::pair<bool,std::vector<std::string>>Assembler::assemble(const std::string& i
                   << std::hex << std::setw(2) << std::setfill('0')
                   << (int)w.opcode << std::dec;
     for (auto &v : w.imm) {
-        std::cout<<"ssss "<<v.isFloat?"(float)":"(int)";
+        // std::cout<<"ssss "<<v.isFloat?"(float)":"(int)";
         std::cout << " " << (v.isFloat ? v.floatValue : v.intValue);
     }        
     std::cout << "   (src line " << w.src_line << ")\n";
