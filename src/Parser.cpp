@@ -249,8 +249,6 @@ void Parser::validate_instruction(const Instruction &ins) {
         case OpCode::NEW:
         case OpCode::GETFIELD:
         case OpCode::PUTFIELD:
-        case OpCode::INVOKEVIRTUAL:
-        case OpCode::INVOKESPECIAL:
         case OpCode::SYS_CALL:       
         case OpCode::NEWARRAY:       
             if (ins.operands.size() != 1)
@@ -291,6 +289,8 @@ void Parser::validate_instruction(const Instruction &ins) {
                 bad("Instruction takes no operands");
             break;
         case OpCode::CALL:
+        case OpCode::INVOKEVIRTUAL:
+        case OpCode::INVOKESPECIAL:
             if (ins.operands.size() != 2)
                 bad("CALL instruction requires exactly 2 operands");
             break;
@@ -759,9 +759,10 @@ if (oc == OpCode::INVOKEVIRTUAL || oc == OpCode::INVOKESPECIAL) {
     if (cur().type != TokenType::NUMBER) {
         errlist.push_back("Expected numeric method index after INVOKEVIRTUAL/INVOKESPECIAL");
     } else {
+        Operand op2;
         int methodIndex = std::stoi(cur().value);
-        op.kind = Operand::Kind::Immediate;
-        op.val = Value(methodIndex); // store index as immediate
+        op2.kind = Operand::Kind::Immediate;
+        op2.val = Value(methodIndex); // store index as immediate
 
         // Validate index against current class
        
@@ -776,11 +777,21 @@ if (oc == OpCode::INVOKEVIRTUAL || oc == OpCode::INVOKESPECIAL) {
         // } else {
         //     errlist.push_back("Current class metadata not found for validation");
         // }
-
+        
+        ins.operands.push_back(op2);
+        advance();
+        if (cur().type != TokenType::NUMBER) {
+        errlist.push_back("Expected numeric method index after INVOKEVIRTUAL/INVOKESPECIAL");
+    }
+        op.kind = Operand::Kind::Immediate;
+        //int s = Value(argCount);
+        op.val =std::stoi(cur().value); // number of arguments
         advance(); // consume the number
     }
 
     ins.operands.push_back(op);
+    symtab.advance_lc(1);
+
 }
 
 

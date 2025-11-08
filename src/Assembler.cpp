@@ -145,7 +145,11 @@ for (auto &w : irrep.words) {
     // Write numeric immediates
     for (size_t i = 0; i < w.imm.size(); ++i) {
          const Value &v = w.imm[i];
-      if (w.opcode == static_cast<uint8_t>(OpCode::CALL) && i == 1) {
+        if (w.opcode == static_cast<uint8_t>(OpCode::CALL) && i == 1) {
+            code.push_back(static_cast<uint8_t>(v.intValue & 0xFF));
+            continue;
+        }
+        else if (w.opcode == static_cast<uint8_t>(OpCode::INVOKEVIRTUAL) && i == 1) {
         code.push_back(static_cast<uint8_t>(v.intValue & 0xFF));
         continue;
     }
