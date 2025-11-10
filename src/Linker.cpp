@@ -363,22 +363,22 @@ void Linker::assignBaseAddressesAndOrder()
 
 std::size_t Linker::preparePatch(const Module &m, uint32_t relOffset)
 {
-    if (relOffset == 0 || relOffset - 1 >= m.code.size())
+    if (relOffset >= m.code.size())
         throw std::runtime_error("Invalid patch offset in " + m.filename);
+    uint8_t opcode = (relOffset > 0) ? m.code[relOffset - 1] : 0;
 
-    uint8_t opcode = m.code[relOffset - 1];
-    uint8_t prev = m.code[relOffset - 2];
     std::cout << "[Linker] Preparing patch at offset " << relOffset
-              << " opcode 0x" << std::hex << static_cast<int>(prev) << std::dec << "\n";
+              << " opcode 0x" << std::hex << static_cast<int>(opcode)
+              << std::dec << "\n";
     auto op = static_cast<OpCode>(opcode);
-    // std::cout << "[Linker] Preparing patch at offset " << relOffset
-    //           << " opcode 0x" << std::hex << static_cast<int>(opcode) << std::dec
-    //           << " (" << opcode_to_string(op) << ")\n";
     std::size_t instrSize = instruction_size(op);
-    std::size_t patchBytes = (instrSize > 1) ? instrSize - 1 : 0;
+    if (instrSize <= 1)
+        throw std::runtime_error(
+            "Opcode at patch site has no operand to patch in " + m.filename);
+    std::size_t patchBytes = instrSize - 1;
 
-    if (patchBytes == 0)
-        throw std::runtime_error("Opcode at patch site has no operand to patch in " + m.filename);
+    if (relOffset + patchBytes > m.code.size())
+        throw std::runtime_error("Patch range out of bounds in " + m.filename);
 
     return patchBytes;
 }
@@ -473,7 +473,6 @@ void Linker::applyRelocations()
             uint32_t operandOffset = r.offset;
             std::size_t patchBytes = preparePatch(m, operandOffset);
             uint8_t opcode = m.code[operandOffset - 1];
-
             // --- Special handling for NEW opcode (class index patch) ---
             if (opcode == 0x50)
             {
@@ -506,7 +505,6 @@ void Linker::applyRelocations()
                 // Skip normal relocation logic
                 continue;
             }
-
             // --- Normal relocations (symbol references) ---
             auto it = global_symbols_.find(r.symbol_name);
             if (it == global_symbols_.end())

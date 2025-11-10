@@ -98,7 +98,7 @@ void Parser::parse_operands(Instruction &ins) {
         // Get method name
         std::string methodName = cur().value;
         advance();
-        std::cout << "[Parser] CALL method: " << methodName << "\n";
+        // std::cout << "[Parser] CALL method: " << methodName << "\n";
 
         // Collect method signature types (all consecutive IDENTs)
       // Count number of '@' characters in the method name
@@ -120,7 +120,7 @@ void Parser::parse_operands(Instruction &ins) {
         op2.kind = Operand::Kind::Immediate;
         //int s = Value(argCount);
         op2.val =Value(argCount); // number of arguments
-        std::cout << "[Parser] CALL arg count: " << "\n";
+        // std::cout << "[Parser] CALL arg count: " << "\n";
         ins.operands.push_back(op2);
         return;
     }
@@ -808,7 +808,6 @@ if (oc == OpCode::INVOKEVIRTUAL || oc == OpCode::INVOKESPECIAL) {
 
             // For jumps: record label references
             if (ins.operands.size() == 1) {
-                std::cout<<"[Parser]Parsing JUMP kinda instructions "  << "\n";
                 switch (oc) {
                     case OpCode::JMP:
                     case OpCode::JZ:
@@ -902,7 +901,7 @@ std::vector<Instruction> Parser::parse() {
 
     // pass 2: resolve pending label references
     auto& refs = symtab.pending_refs();
-    std::cout << "[Parser] Resolving " << refs.size() << " pending label references...\n";
+    // std::cout << "[Parser] Resolving " << refs.size() << " pending label references\n";
     for (auto& r : refs) {
 
         if (r.instr_index >= instrs.size()) {
