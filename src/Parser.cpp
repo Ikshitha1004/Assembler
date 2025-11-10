@@ -171,57 +171,43 @@ void Parser::parse_operands(Instruction &ins) {
         return;
     }
 
-    while (true) {
-        if (cur().type == TokenType::NUMBER || cur().type == TokenType::IDENT) {
-            Operand op;
+  while (true) {
+    if (cur().type == TokenType::NUMBER || cur().type == TokenType::IDENT) {
+        Operand op;
 
-            if (is_float_literal(cur().value)) {
-                op.kind = Operand::Kind::Immediate;
-                float fval = std::stof(cur().value);
-                op.val.floatValue =fval; // store float bits as int
-                op.val.isFloat = true;
-            } 
-            else if (is_int_literal(cur().value)) {
-                op.kind = Operand::Kind::Immediate;
-                op.val.intValue = std::stoi(cur().value);
-                op.val.isFloat = false;
-            } 
-             else {
-            //     // Treat as label for now, resolved later
-            //     op.kind = Operand::Kind::Label;
-            //     op.label = cur().value;
-            // }
-            std::string name = cur().value;
-
-    // if (ins.op == OpCode::PUSH) {
-    //     int cpIndex = constpool.get_index_if_exists(name);  // new helper function
-    //     if (cpIndex != -1) {
-    //         op.kind = Operand::Kind::ConstPoolIndex;
-    //         op.index = cpIndex;
-    //     } else {
-    //         // fallback: normal label
-    //         op.kind = Operand::Kind::Label;
-    //         op.label = name;
-    //     }
-    // } 
-    // // ✅ Case 2: other instructions use label/var as-is
-    // else {
-    //     op.kind = Operand::Kind::Label;
-    //     op.label = name;
-    // }
-}
-
-
-            ins.operands.push_back(op);
-            advance();
+        if (is_float_literal(cur().value)) {
+            op.kind = Operand::Kind::Immediate;
+            op.val.floatValue = std::stof(cur().value);
+            op.val.isFloat = true;
+        } 
+        else if (is_int_literal(cur().value)) {
+            op.kind = Operand::Kind::Immediate;
+            op.val.intValue = std::stoi(cur().value);
+            op.val.isFloat = false;
         } 
         else {
-            break;
+            // Treat as label for now, resolved later
+            op.kind = Operand::Kind::Label;
+            op.label = cur().value;
         }
 
-        if (cur().type == TokenType::COMMA) advance();
-        else break;
+        ins.operands.push_back(op);
+        advance(); // move to next token after processing operand
+
+        // If next token is a comma, consume it and continue
+        if (cur().type == TokenType::COMMA) {
+            advance();
+            continue;
+        } 
+        else {
+            break; // no more operands
+        }
+    } 
+    else {
+        break; // not a valid operand
     }
+}
+
 }
 
 /*----------------------------------------------------------------------------------------
@@ -822,6 +808,7 @@ if (oc == OpCode::INVOKEVIRTUAL || oc == OpCode::INVOKESPECIAL) {
 
             // For jumps: record label references
             if (ins.operands.size() == 1) {
+                std::cout<<"[Parser]Parsing JUMP kinda instructions "  << "\n";
                 switch (oc) {
                     case OpCode::JMP:
                     case OpCode::JZ:
@@ -829,6 +816,7 @@ if (oc == OpCode::INVOKEVIRTUAL || oc == OpCode::INVOKESPECIAL) {
                     {
                         const Operand& op = ins.operands[0];
                         if (op.kind == Operand::Kind::Label && !is_int_literal(op.label) && !is_float_literal(op.label)) {
+                            std::cout<<"Jump to label: " << op.label << " at line " << ins.src_line << "\n";
                             symtab.add_reference(instrs.size(), 0, op.label,
                                                       ins.src_line, ins.src_col);
                         }
@@ -914,7 +902,9 @@ std::vector<Instruction> Parser::parse() {
 
     // pass 2: resolve pending label references
     auto& refs = symtab.pending_refs();
+    std::cout << "[Parser] Resolving " << refs.size() << " pending label references...\n";
     for (auto& r : refs) {
+
         if (r.instr_index >= instrs.size()) {
             std::ostringstream os;
             os << "Internal error: bad reference index " << r.instr_index;
