@@ -39,19 +39,19 @@ static std::string read_string_with_len(std::ifstream &in)
     return s;
 }
 
-static void print_bytes(const std::vector<uint8_t> &data, const std::string &label = "Code")
-{
-    //std::cout << "[DEBUG] " << label << " bytes in hex:" << std::endl;
-    for (size_t i = 0; i < data.size(); ++i)
-    {
-        std::cout << "0x"
-                  << std::setw(2) << std::setfill('0')
-                  << std::hex << static_cast<int>(data[i]) << " ";
-        if ((i + 1) % 16 == 0)
-            std::cout << std::endl;
-    }
-    std::cout << std::dec << std::endl;
-}
+// static void print_bytes(const std::vector<uint8_t> &data, const std::string &label = "Code")
+// {
+//     //std::cout << "[DEBUG] " << label << " bytes in hex:" << std::endl;
+//     for (size_t i = 0; i < data.size(); ++i)
+//     {
+//         std::cout << "0x"
+//                   << std::setw(2) << std::setfill('0')
+//                   << std::hex << static_cast<int>(data[i]) << " ";
+//         if ((i + 1) % 16 == 0)
+//             std::cout << std::endl;
+//     }
+//     std::cout << std::dec << std::endl;
+// }
 
 static void patch_bytes(std::vector<uint8_t> &code, size_t offset, uint32_t value, size_t bytes)
 {
@@ -445,16 +445,16 @@ void Linker::buildGlobalSymbolTable()
             GlobalSymbol gs{m.base_addr + kv.second.address, const_cast<Module *>(&m)};
             global_symbols_[kv.first] = gs;
         }
-        for (const auto &ckv : m.classes)
-        {
-            // const auto &cls = ckv.second;
-            // for (const auto &meth : cls.methods)
-            // {
-            //     std::cout<<"[Linker] Class Method gotten "<<meth.first<<" BASE addr "<<(meth.second)<<"\n";
-            //     GlobalSymbol gs{m.base_addr + meth.second, const_cast<Module *>(&m)};
-            //     global_symbols_[meth.first] = gs;
-            // }
-        }
+        // for (const auto &ckv : m.classes)
+        // {
+        //     const auto &cls = ckv.second;
+        //     for (const auto &meth : cls.methods)
+        //     {
+        //         std::cout<<"[Linker] Class Method gotten "<<meth.first<<" BASE addr "<<(meth.second)<<"\n";
+        //         GlobalSymbol gs{m.base_addr + meth.second, const_cast<Module *>(&m)};
+        //         global_symbols_[meth.first] = gs;
+        //     }
+        // }
     }
 
     std::cout << "[Linker] Built global symbol table: " << global_symbols_.size() << " symbols\n";

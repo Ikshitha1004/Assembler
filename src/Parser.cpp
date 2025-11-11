@@ -293,7 +293,8 @@ void Parser::validate_instruction(const Instruction &ins) {
 
 void Parser::parse_directive() {
     std::string dir = cur().value; 
-    int line = cur().line, col = cur().col;
+    int line = cur().line;
+    // int col = cur().col;
     advance();
     if (dir == ".data") {
         symtab.begin_data();
@@ -699,7 +700,7 @@ void Parser::parse_line() {
 
             auto p = symtab.get_class_metadata(className);
             bool found = p.first;
-            const ClassMetadata& clsMeta = p.second;
+            // const ClassMetadata& clsMeta = p.second;
 
                         // store class name as label
              Operand op;
@@ -730,7 +731,7 @@ void Parser::parse_line() {
             auto p = symtab.get_class_metadata(symtab.get_current_class());
             bool found = p.first;
             const ClassMetadata& clsMeta = p.second;
-            if (found && fieldIndex >= clsMeta.fields.size()) {
+            if (found && fieldIndex >= (int)clsMeta.fields.size()) {
                 // errlist.push_back("Invalid field index for class " + clsMeta.name+"field index: " + std::to_string(fieldIndex) +"at line " + std::to_string(ins.src_line));
             }
         advance();

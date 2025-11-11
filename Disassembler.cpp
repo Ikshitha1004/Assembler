@@ -31,9 +31,9 @@ static uint32_t read_u32(const vector<uint8_t>& buf, size_t off) {
          | ((uint32_t)buf.at(off+2) << 16)
          | ((uint32_t)buf.at(off+3) << 24);
 }
-static int32_t read_i32(const vector<uint8_t>& buf, size_t off) {
-    return static_cast<int32_t>(read_u32(buf, off));
-}
+// static int32_t read_i32(const vector<uint8_t>& buf, size_t off) {
+//     return static_cast<int32_t>(read_u32(buf, off));
+// }
 
 static bool is_float_opcode(OpCode oc) {
     switch (oc) {
@@ -82,105 +82,7 @@ struct RelocEntry {
     uint32_t is_method_ref;
     uint32_t section;
 };
-// Updated to match Linker::writeFinalVM() classMeta layout exactly
-// static bool parse_and_dump_class_meta(const vector<uint8_t>& data, size_t offset, size_t size) {
-//     size_t p = offset;
-//     const size_t end = offset + size;
 
-//     if (offset + 4 > data.size() || offset + 4 > end) return false;
-//     uint32_t classCount = read_u32(data, p); p += 4;
-
-//     std::cout << "\n=== CLASS METADATA ===\n";
-//     std::cout << "classCount = " << classCount << "\n";
-
-//     for (uint32_t i = 0; i < classCount; ++i) {
-//         // read u8 nameLen
-//         if (p + 1 > data.size() || p + 1 > end) return false;
-//         uint8_t nameLen = read_u8(data, p); p += 1;
-
-//         if (p + nameLen > data.size() || p + nameLen > end) return false;
-//         string className;
-//         if (nameLen) {
-//             className.assign(reinterpret_cast<const char*>(&data[p]), nameLen);
-//             p += nameLen;
-//         }
-
-//         if (p + 4 > data.size() || p + 4 > end) return false;
-//         uint32_t superIdx_u = read_u32(data, p); p += 4;
-//         int32_t superIdx = static_cast<int32_t>(superIdx_u); // -1 means none
-
-//         // field count
-//         if (p + 4 > data.size() || p + 4 > end) return false;
-//         uint32_t fieldsCount = read_u32(data, p); p += 4;
-
-//         // read fields
-//         vector<pair<string,uint32_t>> fields;
-//         for (uint32_t f = 0; f < fieldsCount; ++f) {
-//             if (p + 1 > data.size() || p + 1 > end) return false;
-//             uint8_t fnameLen = read_u8(data, p); p += 1;
-
-//             if (p + fnameLen > data.size() || p + fnameLen > end) return false;
-//             string fname;
-//             if (fnameLen) {
-//                 fname.assign(reinterpret_cast<const char*>(&data[p]), fnameLen);
-//                 p += fnameLen;
-//             }
-
-//             if (p + 4 > data.size() || p + 4 > end) return false;
-//             uint32_t ftype = read_u8(data, p); p += 1;
-
-//             fields.emplace_back(fname, ftype);
-//         }
-
-//         // method count
-//         if (p + 4 > data.size() || p + 4 > end) return false;
-//         uint32_t methodsCount = read_u32(data, p); p += 4;
-
-//         vector<pair<string,uint32_t>> methods;
-//         for (uint32_t m = 0; m < methodsCount; ++m) {
-//             if (p + 1 > data.size() || p + 1 > end) return false;
-//             uint8_t mNameLen = read_u8(data, p); p += 1;
-
-//             if (p + mNameLen + 4 > data.size() || p + mNameLen + 4 > end) return false;
-//             string mName;
-//             if (mNameLen) {
-//                 mName.assign(reinterpret_cast<const char*>(&data[p]), mNameLen);
-//                 p += mNameLen;
-//             }
-
-//             uint32_t absOffset = read_u32(data, p); p += 4;
-//             methods.emplace_back(mName, absOffset);
-//         }
-
-//         // Print class info
-//         std::cout << "\nClass[" << i << "]: \"" << className << "\"\n";
-//         std::cout << "  superIndex = " << superIdx << "\n";
-//         std::cout << "  fieldsCount = " << fieldsCount << "\n";
-//         std::cout << "  methodsCount = " << methodsCount << "\n";
-
-//         if (!fields.empty()) {
-//             std::cout << "  Fields:\n";
-//             for (size_t fi = 0; fi < fields.size(); ++fi) {
-//                 std::cout << "    [" << fi << "] name=\"" << fields[fi].first
-//                      << "\" typeCode=" << fields[fi].second << "\n";
-//             }
-//         }
-
-//         if (!methods.empty()) {
-//             std::cout << "  Methods:\n";
-//             for (size_t mi = 0; mi < methods.size(); ++mi) {
-//                 std::cout << "    [" << mi << "] name=\"" << methods[mi].first
-//                      << "\" -> offset=" << methods[mi].second << "\n";
-//             }
-//         }
-//     }
-
-//     // report any extra bytes (helpful for debugging)
-//     if (p != end) {
-//         std::cout << "(note: class meta parsed, " << (end - p) << " extra bytes remain)\n";
-//     }
-//     return true;
-// }
 static bool parse_and_dump_class_meta_obj(const std::vector<uint8_t>& data, size_t offset, size_t size) {
     size_t p = offset;
     const size_t end = offset + size;
@@ -275,9 +177,9 @@ static bool parse_vmobj(const std::vector<uint8_t>& data,
                (static_cast<uint32_t>(d[pos+3]) << 24);
     };
 
-    auto read_u8 = [](const std::vector<uint8_t>& d, size_t pos) -> uint8_t {
-        return d[pos];
-    };
+    // auto read_u8 = [](const std::vector<uint8_t>& d, size_t pos) -> uint8_t {
+    //     return d[pos];
+    // };
 
     auto fail = [](const std::string& msg) -> bool {
         std::cerr << "VMO parse failed: " << msg << "\n";
@@ -595,9 +497,9 @@ int main(int argc, char** argv) {
     unordered_map<string,uint32_t> fields;
     vector<RelocEntry> relocs;
 
-    bool is_obj = false;
+    // bool is_obj = false;
     if (filedata.size() >= 4 && read_u32(filedata, 0) == OBJ_MAGIC) {
-    is_obj = true;
+    // is_obj = true;
     size_t classMetaOffset = 0, classMetaSize = 0;
     bool ok = parse_vmobj(filedata, code, labels, methods, fields, relocs,
                           classMetaOffset, classMetaSize);
