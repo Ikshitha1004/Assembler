@@ -46,7 +46,8 @@ void writeObjectFile(
     const auto& labels = symtab.labels();
     write_u32(out, static_cast<uint32_t>(labels.size()));
     for (const auto& kv : labels) {
-        write_string_with_len(out, kv.first);
+        std::string fullLabelName = filename + ":" + kv.first;
+        write_string_with_len(out, fullLabelName);
         write_u32(out, kv.second.address);
         write_u32(out, kv.second.line);
         write_u32(out, kv.second.col);
@@ -96,7 +97,10 @@ void writeObjectFile(
     write_u32(out, static_cast<uint32_t>(relos.size()));
     for (const auto& r : relos) {
         write_u32(out, r.offset);
-        write_string_with_len(out, r.symbol_name);
+        if(r.is_method_ref==0){
+            write_string_with_len(out, filename+":"+r.symbol_name);
+        }
+        else {write_string_with_len(out, r.symbol_name);}
         write_u32(out, r.is_method_ref); // NEW
         write_u32(out, static_cast<uint32_t>(r.section));
     }

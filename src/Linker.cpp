@@ -250,7 +250,7 @@ void Linker::assignBaseAddressesAndOrder()
             curBase += static_cast<uint32_t>(m.code.size());
         }
 
-        std::cout << "[Linker] Assigned base addresses sequentially (no dependency reordering):\n";
+        //std::cout << "[Linker] Assigned base addresses sequentially (no dependency reordering):\n";
         for (auto &m : modules_)
         {
             std::cout << "  " << m.filename << " base=" << m.base_addr << " size=" << m.code.size() << "\n";
@@ -367,9 +367,9 @@ std::size_t Linker::preparePatch(const Module &m, uint32_t relOffset)
         throw std::runtime_error("Invalid patch offset in " + m.filename);
     uint8_t opcode = (relOffset > 0) ? m.code[relOffset - 1] : 0;
 
-    std::cout << "[Linker] Preparing patch at offset " << relOffset
-              << " opcode 0x" << std::hex << static_cast<int>(opcode)
-              << std::dec << "\n";
+    // std::cout << "[Linker] Preparing patch at offset " << relOffset
+    //           << " opcode 0x" << std::hex << static_cast<int>(opcode)
+    //           << std::dec << "\n";
     auto op = static_cast<OpCode>(opcode);
     std::size_t instrSize = instruction_size(op);
     if (instrSize <= 1)
@@ -441,7 +441,7 @@ void Linker::buildGlobalSymbolTable()
         }
         for (const auto &kv : m.methods)
         {
-            std::cout<<"[Linker] Method gotten"<<kv.first<<" BASE addr "<<(kv.second.address)<<"\n";
+           // std::cout<<"[Linker] Method gotten"<<kv.first<<" BASE addr "<<(kv.second.address)<<"\n";
             GlobalSymbol gs{m.base_addr + kv.second.address, const_cast<Module *>(&m)};
             global_symbols_[kv.first] = gs;
         }
@@ -477,12 +477,12 @@ void Linker::applyRelocations()
             if (opcode == 0x50)
             {
                 std::string clsName = r.symbol_name;
-                std::cout << "[Linker] Relocation for NEW opcode, class name: " << clsName << "\n";
+               // std::cout << "[Linker] Relocation for NEW opcode, class name: " << clsName << "\n";
                 if (!class_indices_.count(clsName))
                     throw std::runtime_error("Unknown class for NEW: " + clsName);
                 uint32_t clsIndex = class_indices_[clsName];
-                std::cout << "[Linker] Class " << clsName << " has index " << clsIndex << "\n";
-                std::cout << "[Linker] Patching NEW for class " << clsName << " with idx " << clsIndex << "\n";
+               // std::cout << "[Linker] Class " << clsName << " has index " << clsIndex << "\n";
+               // std::cout << "[Linker] Patching NEW for class " << clsName << " with idx " << clsIndex << "\n";
                 patch_bytes(m.code, operandOffset, clsIndex, patchBytes);
                 continue;
             }
@@ -497,8 +497,8 @@ void Linker::applyRelocations()
                 // Force patch only the first 4 bytes (target address)
                 std::size_t callPatchBytes = std::min<std::size_t>(4, patchBytes);
 
-                std::cout << "[Linker] Patching CALL target for symbol " << r.symbol_name
-                          << " with addr " << target << " (only first 4 bytes)\n";
+               // std::cout << "[Linker] Patching CALL target for symbol " << r.symbol_name
+                         // << " with addr " << target << " (only first 4 bytes)\n";
 
                 patch_bytes(m.code, operandOffset, target, callPatchBytes);
 
@@ -526,7 +526,7 @@ void Linker::patchModuleSymbols(Module &m)
         uint32_t offset = lbl.second;
         uint32_t absAddr = m.base_addr + offset;
 
-        std::cout << "[Label] " << label << " -> absolute " << absAddr << "\n";
+        //std::cout << "[Label] " << label << " -> absolute " << absAddr << "\n";
         std::size_t patchBytes = preparePatch(m, offset);
         patch_bytes(m.code, offset, absAddr, patchBytes);
     }
@@ -535,10 +535,10 @@ void Linker::patchModuleSymbols(Module &m)
     {
         const std::string &name = meth.first;
         const MethodInfo &method = meth.second;
-        std::cout<<"[Linker] Method addr "<<method.address<<"\n";
+        //std::cout<<"[Linker] Method addr "<<method.address<<"\n";
         uint32_t absAddr = m.base_addr + method.address;
 
-        std::cout << "[Method] " << name << " -> absolute " << absAddr << "\n";
+        //std::cout << "[Method] " << name << " -> absolute " << absAddr << "\n";
         std::size_t patchBytes = preparePatch(m, method.address);
         patch_bytes(m.code, method.address, absAddr, patchBytes);
     }
@@ -561,8 +561,8 @@ void Linker::patchModuleSymbols(Module &m)
             uint32_t methOffset = methPair.second;
             uint32_t absAddr = m.base_addr + methOffset;
 
-            std::cout << "[ClassMethod] " << clsName << "::" << methName
-                      << " -> absolute " << absAddr << "\n";
+            // std::cout << "[ClassMethod] " << clsName << "::" << methName
+            //           << " -> absolute " << absAddr << "\n";
 
             std::size_t patchBytes = preparePatch(m, methOffset);
             patch_bytes(m.code, methOffset, absAddr, patchBytes);
@@ -585,7 +585,7 @@ void Linker::mergeModules(std::vector<uint8_t> &outcode)
         outcode.insert(outcode.end(), m.code.begin(), m.code.end());
     }
 }
-std::cout << "[Linker] Merged " << outcode.size() << " bytes of code from live modules\n";
+//std::cout << "[Linker] Merged " << outcode.size() << " bytes of code from live modules\n";
 }
 
 // --------------------------- writeFinalVM ---------------------------
@@ -663,9 +663,9 @@ void Linker::writeFinalVM(const std::string &outPath,
             const FieldInfo &fInfo = fieldPair.second;
             uint8_t ftype = static_cast<uint8_t>(get_type_code(fInfo.descriptor));
 
-            std::cout << "[Linker] Class Field " << fName
-                    << " idx " << fInfo.index
-                    << " type " << static_cast<int>(ftype) << "\n";
+            // std::cout << "[Linker] Class Field " << fName
+            //         << " idx " << fInfo.index
+            //         << " type " << static_cast<int>(ftype) << "\n";
 
             if (fName.size() > 255)
                 throw std::runtime_error("Field name too long for metadata");
@@ -708,7 +708,7 @@ void Linker::writeFinalVM(const std::string &outPath,
 
         uint32_t absOffset = it->second.address;
 
-        std::cout << "[Linker] Class Method " << mName << " addr " << absOffset << "\n";
+        //std::cout << "[Linker] Class Method " << mName << " addr " << absOffset << "\n";
 
         if (mName.size() > 255)
             throw std::runtime_error("Method name too long for metadata");

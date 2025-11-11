@@ -14,7 +14,7 @@
 // #include <regex>
 
 const std::vector<std::string> Parser::known_libs = {
-    "arithmetic", "io", "terminos", "utility", "filehandler", "stringhandler", "vector"
+    "Arithmetic", "IO", "Terminos", "Utility", "FileHandler", "StringHandler", "Vector"
 };
 Parser::Parser(const std::vector<Token>& t)
     : toks(t), idx(0) {}
